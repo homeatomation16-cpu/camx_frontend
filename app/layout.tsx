@@ -9,6 +9,7 @@ import './globals.css';
 
 import Header from '@/app/components/Header';
 import Footer from './components/Footer';
+import { Providers } from './providers';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -97,22 +98,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} dark`}
-    >
-      <body className="bg-[#050816] text-white min-h-screen antialiased">
+    // suppressHydrationWarning අනිවාර්යයි, සහ hardcoded "dark" අයින් කළා
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
+      <body className="bg-white dark:bg-[#050816] text-gray-900 dark:text-white min-h-screen antialiased">
+        
+        {/* Providers හරහා තමයි theme එක auto detect වෙන්නේ */}
+        <Providers>
+          <Header />
+          <main className="flex-1">
+            {children}
+          </main>
+          <Footer />
+        </Providers>
 
-        {/* HEADER */}
-        <Header />
-
-        {/* PAGE CONTENT */}
-        <main className="flex-1">
-          {children}
-        </main>
-
-        {/* FOOTER */}
-        <Footer />
       </body>
     </html>
   );
