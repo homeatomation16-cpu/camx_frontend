@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import SeoTagText from "./seoTagText";
 
 export default function Hero() {
   return (
@@ -35,9 +36,9 @@ export default function Hero() {
       <div className="absolute inset-0 bg-linear-to-r from-white via-white/80 to-transparent dark:from-black dark:via-black/70 dark:to-black/10" />
 
       {/* CONTENT */}
-      <div className="relative flex items-center h-[130vh] ">
+      <div className="relative flex items-center h-[calc(150vh-80px)] ">
         <div className="max-w-7xl mx-auto px-6 w-full">
-          <div className="max-w-3xl">
+          <div className="max-w-3xl py-10">
             {/* BADGE */}
             <div className="inline-flex bg-green/90 items-center px-5 py-2 rounded-full border border-secondary/30  dark:bg-secondary/10 backdrop-blur-xl mb-7 shadow-lg">
               <span className="text-secondary text-xs md:text-sm font-black uppercase tracking-[0.35em]">
@@ -99,6 +100,11 @@ export default function Hero() {
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* SEO TEXT - HIDDEN ON SMALL SCREENS */}
+          <div className="hidden md:block mt-20">
+            <SeoTagText />
           </div>
         </div>
       </div>

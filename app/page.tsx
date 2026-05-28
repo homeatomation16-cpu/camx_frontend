@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import axios from 'axios';
-import { useEffect, useState } from 'react';
-import Hero from '@/app/components/Hero';
-import FeaturedProducts from '@/app/components/FeaturedProducts'; // Import the new FeaturedProducts component
-import Services from '@/app/components/Services';
+import axios from "axios";
+import { useEffect, useState } from "react";
+import Hero from "@/app/components/Hero";
+import FeaturedProducts from "@/app/components/FeaturedProducts"; // Import the new FeaturedProducts component
+import Services from "@/app/components/Services";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
@@ -21,8 +21,8 @@ type Product = {
 };
 
 export default function HomePage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setProducts] = useState<Product[]>([]);
+  const [, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -30,7 +30,7 @@ export default function HomePage() {
         const response = await axios.get(`${API}/products`);
         setProducts(response.data);
       } catch (error) {
-        console.log('Product fetch error:', error);
+        console.log("Product fetch error:", error);
       } finally {
         setLoading(false);
       }
@@ -40,21 +40,18 @@ export default function HomePage() {
 
   return (
     <main className="h-full bg-white dark:bg-background text-neutral-900 dark:text-foreground transition-colors duration-300">
-      
       {/* 1. HERO COMPONENT */}
-      <div className='pt-10'>
-      <Hero />
+      <div className="pt-10">
+        <Hero />
       </div>
-      
 
       {/* 2. STANDALONE REUSABLE FEATURED PRODUCTS COMPONENT */}
-       <div className='pt-3'>
-      <FeaturedProducts products={products} loading={loading} />
+      <div>
+        <FeaturedProducts />
       </div>
 
       {/* 3. SERVICES COMPONENT */}
       <Services />
-
     </main>
   );
 }

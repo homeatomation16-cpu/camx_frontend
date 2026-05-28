@@ -69,8 +69,10 @@ export default function ViewOrderInfoCustomer({
   order,
 }: Props) {
 
-  const [isModalOpen, setIsModalOpen] =
-    useState(false);
+  const [
+    isModalOpen,
+    setIsModalOpen,
+  ] = useState(false);
 
   if (!order) return null;
 
@@ -83,6 +85,7 @@ export default function ViewOrderInfoCustomer({
   ) => {
 
     if (!value) {
+
       return "-";
     }
 
@@ -143,25 +146,26 @@ export default function ViewOrderInfoCustomer({
           setIsModalOpen(false)
         }
         ariaHideApp={false}
-        overlayClassName="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-        className="w-full max-w-3xl bg-primary rounded-3xl shadow-2xl outline-none overflow-hidden"
+        overlayClassName="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        className="w-full max-w-3xl bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl outline-none overflow-hidden border border-neutral-200 dark:border-white/10"
       >
 
         <div className="flex flex-col max-h-[90vh]">
 
           {/* HEADER */}
-          <div className="flex items-start justify-between border-b border-secondary/10 px-6 py-5">
+          <div className="flex items-start justify-between border-b border-neutral-200 dark:border-white/10 px-6 py-5">
 
             <div>
 
-              <h2 className="text-2xl font-black text-secondary flex items-center gap-2">
+              <h2 className="text-2xl font-black text-neutral-900 dark:text-white flex items-center gap-2">
 
-                <HiOutlineClipboardList className="text-accent" />
+                <HiOutlineClipboardList className="text-blue-600" />
 
                 Order Details
               </h2>
 
-              <p className="text-sm text-secondary/70 mt-1">
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+
                 Review your order information
               </p>
             </div>
@@ -170,8 +174,9 @@ export default function ViewOrderInfoCustomer({
               onClick={() =>
                 setIsModalOpen(false)
               }
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-secondary/5 text-secondary hover:bg-secondary/10 transition"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 dark:bg-white/5 text-neutral-700 dark:text-white hover:bg-neutral-200 dark:hover:bg-white/10 transition"
             >
+
               <HiOutlineX className="text-xl" />
             </button>
           </div>
@@ -185,62 +190,74 @@ export default function ViewOrderInfoCustomer({
               {/* LEFT */}
               <div className="space-y-4">
 
+                {/* ORDER ID */}
                 <div>
 
-                  <p className="text-xs uppercase font-bold text-secondary/60">
+                  <p className="text-xs uppercase font-bold text-neutral-500 dark:text-neutral-400">
+
                     Order ID
                   </p>
 
-                  <p className="text-sm font-semibold text-secondary break-all">
+                  <p className="text-sm font-semibold text-neutral-900 dark:text-white break-all">
+
                     {order.orderId}
                   </p>
                 </div>
 
+                {/* CUSTOMER */}
                 <div className="flex items-start gap-3">
 
-                  <HiOutlineUser className="text-secondary/60 mt-1" />
+                  <HiOutlineUser className="text-neutral-500 dark:text-neutral-400 mt-1" />
 
                   <div>
 
-                    <p className="text-xs uppercase font-bold text-secondary/60">
+                    <p className="text-xs uppercase font-bold text-neutral-500 dark:text-neutral-400">
+
                       Customer Name
                     </p>
 
-                    <p className="text-sm text-secondary">
+                    <p className="text-sm text-neutral-900 dark:text-white">
+
                       {order.name}
                     </p>
                   </div>
                 </div>
 
+                {/* EMAIL */}
                 <div className="flex items-start gap-3">
 
-                  <HiOutlineMail className="text-secondary/60 mt-1" />
+                  <HiOutlineMail className="text-neutral-500 dark:text-neutral-400 mt-1" />
 
                   <div>
 
-                    <p className="text-xs uppercase font-bold text-secondary/60">
+                    <p className="text-xs uppercase font-bold text-neutral-500 dark:text-neutral-400">
+
                       Email
                     </p>
 
-                    <p className="text-sm text-secondary break-all">
+                    <p className="text-sm text-neutral-900 dark:text-white break-all">
+
                       {order.email}
                     </p>
                   </div>
                 </div>
 
+                {/* PHONE */}
                 {order.phone && (
 
                   <div className="flex items-start gap-3">
 
-                    <HiOutlinePhone className="text-secondary/60 mt-1" />
+                    <HiOutlinePhone className="text-neutral-500 dark:text-neutral-400 mt-1" />
 
                     <div>
 
-                      <p className="text-xs uppercase font-bold text-secondary/60">
+                      <p className="text-xs uppercase font-bold text-neutral-500 dark:text-neutral-400">
+
                         Phone
                       </p>
 
-                      <p className="text-sm text-secondary">
+                      <p className="text-sm text-neutral-900 dark:text-white">
+
                         {order.phone}
                       </p>
                     </div>
@@ -251,17 +268,19 @@ export default function ViewOrderInfoCustomer({
               {/* RIGHT */}
               <div className="space-y-4">
 
+                {/* DATE */}
                 <div className="flex items-start gap-3">
 
-                  <HiOutlineCalendar className="text-secondary/60 mt-1" />
+                  <HiOutlineCalendar className="text-neutral-500 dark:text-neutral-400 mt-1" />
 
                   <div>
 
-                    <p className="text-xs uppercase font-bold text-secondary/60">
+                    <p className="text-xs uppercase font-bold text-neutral-500 dark:text-neutral-400">
+
                       Order Date & Time
                     </p>
 
-                    <p className="text-sm text-secondary">
+                    <p className="text-sm text-neutral-900 dark:text-white">
 
                       {formatDateTime(
                         order.date ||
@@ -272,13 +291,15 @@ export default function ViewOrderInfoCustomer({
                   </div>
                 </div>
 
+                {/* STATUS */}
                 <div className="flex items-start gap-3">
 
-                  <MdOutlinePendingActions className="text-secondary/60 mt-1" />
+                  <MdOutlinePendingActions className="text-neutral-500 dark:text-neutral-400 mt-1" />
 
                   <div>
 
-                    <p className="text-xs uppercase font-bold text-secondary/60">
+                    <p className="text-xs uppercase font-bold text-neutral-500 dark:text-neutral-400">
+
                       Status
                     </p>
 
@@ -287,18 +308,22 @@ export default function ViewOrderInfoCustomer({
                         order.status
                       )}`}
                     >
+
                       {order.status}
                     </span>
                   </div>
                 </div>
 
+                {/* TOTAL */}
                 <div>
 
-                  <p className="text-xs uppercase font-bold text-secondary/60">
+                  <p className="text-xs uppercase font-bold text-neutral-500 dark:text-neutral-400">
+
                     Total Amount
                   </p>
 
                   <p className="text-xl font-black text-yellow-600">
+
                     {formatCurrency(
                       order.total
                     )}
@@ -308,25 +333,26 @@ export default function ViewOrderInfoCustomer({
             </div>
 
             {/* ADDRESS */}
-            <div className="border border-secondary/10 rounded-2xl p-4 bg-white/60">
+            <div className="border border-neutral-200 dark:border-white/10 rounded-2xl p-4 bg-neutral-50 dark:bg-white/5">
 
-              <p className="text-xs uppercase font-bold text-secondary/60 mb-2 flex items-center gap-2">
+              <p className="text-xs uppercase font-bold text-neutral-500 dark:text-neutral-400 mb-2 flex items-center gap-2">
 
                 <HiOutlineHome />
 
                 Delivery Address
               </p>
 
-              <p className="text-sm text-secondary whitespace-pre-line">
+              <p className="text-sm text-neutral-900 dark:text-white whitespace-pre-line">
+
                 {order.address ||
                   "No address provided"}
               </p>
             </div>
 
             {/* NOTES */}
-            <div className="border border-secondary/10 rounded-2xl p-4 bg-white/60">
+            <div className="border border-neutral-200 dark:border-white/10 rounded-2xl p-4 bg-neutral-50 dark:bg-white/5">
 
-              <p className="text-xs uppercase font-bold text-secondary/60 mb-2 flex items-center gap-2">
+              <p className="text-xs uppercase font-bold text-neutral-500 dark:text-neutral-400 mb-2 flex items-center gap-2">
 
                 <FiEdit3 />
 
@@ -338,33 +364,39 @@ export default function ViewOrderInfoCustomer({
                 value={
                   order.notes || ""
                 }
-                className="w-full text-sm bg-transparent outline-none resize-none text-secondary min-h-20"
+                className="w-full text-sm bg-transparent outline-none resize-none text-neutral-900 dark:text-white min-h-20"
               />
             </div>
 
             {/* ITEMS */}
-            <div className="border border-secondary/10 rounded-2xl bg-white overflow-hidden">
+            <div className="border border-neutral-200 dark:border-white/10 rounded-2xl bg-white dark:bg-white/5 overflow-hidden">
 
-              <div className="flex justify-between px-4 py-3 border-b bg-secondary/5">
+              {/* TOP */}
+              <div className="flex justify-between px-4 py-3 border-b border-neutral-200 dark:border-white/10 bg-neutral-100 dark:bg-white/5">
 
-                <p className="text-sm font-bold text-secondary flex items-center gap-2">
+                <p className="text-sm font-bold text-neutral-900 dark:text-white flex items-center gap-2">
 
                   <HiOutlineShoppingBag />
 
                   Items in this order
                 </p>
 
-                <p className="text-xs text-secondary/60">
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+
                   {order.items?.length || 0} item(s)
                 </p>
               </div>
 
+              {/* ITEMS */}
               {order.items?.length ? (
 
-                <div className="max-h-72 overflow-y-auto divide-y divide-secondary/10">
+                <div className="max-h-72 overflow-y-auto divide-y divide-neutral-200 dark:divide-white/10">
 
                   {order.items.map(
-                    (item, index) => {
+                    (
+                      item,
+                      index
+                    ) => {
 
                       const lineTotal =
                         (item.price || 0) *
@@ -380,7 +412,7 @@ export default function ViewOrderInfoCustomer({
                         >
 
                           {/* IMAGE */}
-                          <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-secondary/5 shrink-0">
+                          <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-neutral-100 dark:bg-white/5 shrink-0">
 
                             {item.image ? (
 
@@ -394,7 +426,7 @@ export default function ViewOrderInfoCustomer({
 
                             ) : (
 
-                              <div className="w-full h-full flex items-center justify-center text-xs text-secondary/40">
+                              <div className="w-full h-full flex items-center justify-center text-xs text-neutral-400">
                                 No image
                               </div>
                             )}
@@ -403,15 +435,18 @@ export default function ViewOrderInfoCustomer({
                           {/* INFO */}
                           <div className="flex-1 min-w-0">
 
-                            <p className="text-sm font-bold text-secondary truncate">
+                            <p className="text-sm font-bold text-neutral-900 dark:text-white truncate">
+
                               {item.name}
                             </p>
 
-                            <p className="text-xs text-secondary/60">
+                            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+
                               Product ID: {item.productID}
                             </p>
 
-                            <p className="text-xs text-secondary/60">
+                            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+
                               Qty: {item.quantity}
                               {" | "}
                               Unit: {formatCurrency(item.price)}
@@ -419,7 +454,7 @@ export default function ViewOrderInfoCustomer({
                           </div>
 
                           {/* TOTAL */}
-                          <p className="text-sm font-bold text-secondary whitespace-nowrap">
+                          <p className="text-sm font-bold text-neutral-900 dark:text-white whitespace-nowrap">
 
                             {formatCurrency(
                               lineTotal
@@ -433,7 +468,8 @@ export default function ViewOrderInfoCustomer({
 
               ) : (
 
-                <div className="px-4 py-6 text-center text-sm text-secondary/60">
+                <div className="px-4 py-6 text-center text-sm text-neutral-500 dark:text-neutral-400">
+
                   No items found
                 </div>
               )}
@@ -441,27 +477,31 @@ export default function ViewOrderInfoCustomer({
           </div>
 
           {/* FOOTER */}
-          <div className="px-6 py-4 border-t border-secondary/10 flex justify-between items-center">
+          <div className="px-6 py-4 border-t border-neutral-200 dark:border-white/10 flex justify-between items-center">
 
             <div>
 
-              <p className="text-xs uppercase font-bold text-secondary/60">
+              <p className="text-xs uppercase font-bold text-neutral-500 dark:text-neutral-400">
+
                 Total Amount
               </p>
 
               <p className="text-lg font-black text-yellow-600">
+
                 {formatCurrency(
                   order.total
                 )}
               </p>
             </div>
 
+            {/* CLOSE */}
             <button
               onClick={() =>
                 setIsModalOpen(false)
               }
-              className="px-5 py-2.5 bg-secondary text-white rounded-xl text-sm font-semibold hover:bg-secondary/90 transition"
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition"
             >
+
               Close
             </button>
           </div>
@@ -473,7 +513,7 @@ export default function ViewOrderInfoCustomer({
         onClick={() =>
           setIsModalOpen(true)
         }
-        className="bg-accent hover:bg-accent/90 px-4 py-2 rounded-xl text-white text-sm font-semibold shadow-sm flex items-center gap-2 transition"
+        className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-xl text-white text-sm font-semibold shadow-sm flex items-center gap-2 transition"
       >
 
         <HiOutlineClipboardList />

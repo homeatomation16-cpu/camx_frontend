@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "neural-house-484703-k1",
+  "private_key_id": "49893c3d625a0f5469d795a86dd38f1b4eaa9b85",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDILRNk2R+UEe4C\nb3VJLew/TlPdwp+dYxdpPOfi+thnwNly0A4lPu6CSrtugWPNfdxqGUVGedYW36Ms\n67mLSa1aILliROvtSvxVABMd93RzZSpdkM0GbBMuuZLZItKP0QHyu3Bf0O6CW7u4\nEyFY5D1dwA+zaynbmDs3fqzZg6o/XpQAdOyCjP1F71BvCDMpykIKycz9VYY3R5Nb\nY4XJgIzejU8fqjzWyZ8jZ7Wf6Z+roiH/N8AUAHRupWin3S957WjYVygHfSnm/9yX\nLZihuIIimtAPh14X4xgcF6kXvkN6rOizTiOwF+SnP6WfSivAhJcTzgJLmVCBs6lC\nFG6xGRzvAgMBAAECggEAH0MkQBVFaxoWakye7BlfHTnt5iMoS2u3iHN/IZdHJy5a\np3raeAhT4TGrrmPzGBuGdLl9SgxAGnK901z92Bo0bRrRk7PWMXPgZE6ugvkWYj6T\n9xM6Dz00t7uQCsJMpoef/sPgQSPqWUiF+4cH/Q/UN6kwVTcwzSoBYYwykYaQbEnh\nXDVTUHNMoG0ZAQPA0aLfWwq9piaspxTZfKPEz1r/Xf7BQ1NxymnpM5XPQVN30+XW\nQ5TXo0wtPmRrFJsY0DTIaonyUUW1uUfhWwyPUsMRzHDt6okJ5JSUFXt/7ZNCV5yo\n+UtND1KX6NaQ+iNBnKnLsQBDwGJBqWChcgITxAYkWQKBgQD+aDr9KFgPImNfiePH\ny54IKgmTAMIFnHoevO2ZrAuTscrFhWD+6aF4UvvUCwOEiZpt3nG5Oe+hy5cVyIre\nSL5Zuwkd7XQ4djTjst5tQ3j3K2c58O/mlU9YcIl6c7mbTQc24dVVK7SY2k1KuhiM\nMxNyWRUY79cmGRQghxi1JKf/iQKBgQDJbewrJP/oTjLb6Vq/zEhOY8bogUoAcjZn\nQ1C9RwCPBD7+dLArwCJ82+jug3XFG7GeBhd0nverEQhxRPkyrJ9+DOrN9rNumZOA\nP8ihQveZWfAxBc1LRhH0RLiwFVAVBTlULNmOV5NM6lHKz0cU0GR9uwtdcE0hTzMf\n9wk8oPditwKBgCB50b3rXoJgE2towMkKdxv3sc0wNZRdy0ENQQ9y5O9vrMDWK/Ge\nhVxEy5zf4w0SO8J2uPG6MZrn0FuZhBCoHJR7ycgmPcXPYSUH+ljcWh7DTaQZ26YF\nvWE+zG3zQ+hNRvR8k60RrTYt99voMaYEByF7ubO7Oi3E2crlNAQ7r65xAoGBAKz2\nYawuijwdIdjqCQ3WyWPek4dEtZmqeQK0r9jH5jfoSntPEZOP2U1jvCFK6s7FWAA8\ndNmkQ0E2UAyLUHxt9EpVpy4Sn8LhxuGCY7HtghTBQNmnhMAVPAeHFxvEQU67fJ3G\nIU3z7z1Fm9RNpli+FPxNp5Wlf+WRT3IsO1c/VQ4DAoGAYn8xVl3E74jLzZ7r9pTR\nCPGNgnBTFYc35ZMw/AL7xnYgsz2Efy6b3P9TY5ExF45kYfJNMSOoc2vM4K02JywB\nqnR4lYOVFEzfgZrE8vPrrMfDpCjQ/fIn1QFNVCKB3FJQS8GpV7BY2rxdrdeQ4RMX\nBUjnsntpK3dtbVi7Ji+DTMk=\n-----END PRIVATE KEY-----\n",
+  "client_email": "sameerakelum16@neural-house-484703-k1.iam.gserviceaccount.com",
+  "client_id": "117634703243247914445",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/sameerakelum16%40neural-house-484703-k1.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
