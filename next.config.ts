@@ -5,6 +5,10 @@ const nextConfig: NextConfig = {
     qualities: [74, 75, 100],
 
     remotePatterns: [
+    {
+        protocol: "https",
+        hostname: "static.cdnlogo.com",
+      },
       {
         protocol: "https",
         hostname: "example.com",

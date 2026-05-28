@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import Hero from "@/app/components/Hero";
 import FeaturedProducts from "@/app/components/FeaturedProducts"; // Import the new FeaturedProducts component
 import Services from "@/app/components/Services";
+import ServicesSection from "./components/ServicesSection";
+import Providers from "./components/Providers";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
@@ -48,6 +50,13 @@ export default function HomePage() {
       {/* 2. STANDALONE REUSABLE FEATURED PRODUCTS COMPONENT */}
       <div>
         <FeaturedProducts />
+      </div>
+      <div>
+        <ServicesSection />
+      </div>
+
+      <div>
+        <Providers />
       </div>
 
       {/* 3. SERVICES COMPONENT */}
