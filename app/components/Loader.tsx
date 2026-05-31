@@ -1,20 +1,15 @@
-'use client';
+"use client";
 
-import {
-  motion,
-} from 'framer-motion';
+import { motion } from "framer-motion";
 
 // ======================================
 // COMPONENT
 // ======================================
 
 export default function Loader() {
-
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
-
       <div className="flex flex-col items-center gap-6">
-
         {/* SPINNER */}
         <motion.div
           animate={{
@@ -23,7 +18,7 @@ export default function Loader() {
           transition={{
             duration: 1,
             repeat: Infinity,
-            ease: 'linear',
+            ease: "linear",
           }}
           className="w-16 h-16 rounded-full border-4 border-secondary/20 border-t-secondary"
         />
@@ -39,7 +34,7 @@ export default function Loader() {
           transition={{
             duration: 1,
             repeat: Infinity,
-            repeatType: 'reverse',
+            repeatType: "reverse",
           }}
           className="text-lg font-bold text-secondary tracking-wide"
         >

@@ -32,21 +32,18 @@ const nextConfig: NextConfig = {
 
       {
         protocol: "https",
-        hostname:
-          "lh3.googleusercontent.com",
+        hostname: "lh3.googleusercontent.com",
         pathname: "/**",
       },
 
       {
         protocol: "https",
-        hostname:
-          "images.unsplash.com",
+        hostname: "images.unsplash.com",
       },
 
       {
         protocol: "https",
-        hostname:
-          "cdn.pixabay.com",
+        hostname: "cdn.pixabay.com",
       },
     ],
   },

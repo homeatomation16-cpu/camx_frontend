@@ -47,30 +47,17 @@ export default function Providers() {
 
       <div className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8">
         {/* HEADER */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="mb-16 text-center"
-        >
+        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="mb-16 text-center">
           {/* BADGE */}
           <div className="mb-5 inline-flex rounded-full border border-secondary/20 bg-secondary/5 px-5 py-2">
-            <span className="text-xs font-bold uppercase tracking-[0.28em] text-secondary">
-              Trusted Brands
-            </span>
+            <span className="text-xs font-bold uppercase tracking-[0.28em] text-secondary">Trusted Brands</span>
           </div>
 
           {/* TITLE */}
-          <h2 className="text-4xl font-black tracking-tight text-foreground lg:text-5xl">
-            Our Trusted Providers
-          </h2>
+          <h2 className="text-4xl font-black tracking-tight text-foreground lg:text-5xl">Our Trusted Providers</h2>
 
           {/* SUBTITLE */}
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-foreground/60 lg:text-lg">
-            Authorized security and networking brands we install and support
-            across Sri Lanka.
-          </p>
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-foreground/60 lg:text-lg">Authorized security and networking brands we install and support across Sri Lanka.</p>
         </motion.div>
 
         {/* GRID */}
@@ -112,21 +99,12 @@ export default function Providers() {
 
               {/* LOGO */}
               <div className="relative z-10 flex h-24 items-center justify-center">
-                <Image
-                  src={brand.logo}
-                  alt={brand.name}
-                  width={140}
-                  height={60}
-                  className="max-h-12 w-auto object-contain transition duration-300 group-hover:scale-105"
-                  loading="lazy"
-                />
+                <Image src={brand.logo} alt={brand.name} width={140} height={60} className="max-h-12 w-auto object-contain transition duration-300 group-hover:scale-105" loading="lazy" />
               </div>
 
               {/* BRAND NAME */}
               <div className="relative z-10 mt-4 text-center">
-                <h3 className="text-sm font-semibold tracking-wide text-foreground transition duration-300 group-hover:text-secondary">
-                  {brand.name}
-                </h3>
+                <h3 className="text-sm font-semibold tracking-wide text-foreground transition duration-300 group-hover:text-secondary">{brand.name}</h3>
               </div>
 
               {/* BOTTOM LINE */}

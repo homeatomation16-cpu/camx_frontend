@@ -119,15 +119,7 @@ export default function UserData({ compact = false }: Props) {
   // SAFE IMAGE
   // =========================
 
-  const imageSrc =
-    user.image &&
-    typeof user.image === "string" &&
-    user.image.trim() !== "" &&
-    (user.image.startsWith("http://") ||
-      user.image.startsWith("https://") ||
-      user.image.startsWith("/"))
-      ? user.image
-      : "/default-avatar.png";
+  const imageSrc = user.image && typeof user.image === "string" && user.image.trim() !== "" && (user.image.startsWith("http://") || user.image.startsWith("https://") || user.image.startsWith("/")) ? user.image : "/default-avatar.png";
 
   // =========================
   // MOBILE VIEW

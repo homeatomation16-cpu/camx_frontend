@@ -10,7 +10,7 @@ const ThemeContext = createContext<{
 
 // Safe client-side state initializer block avoids inline synchronous setState inside effects
 const getInitialTheme = (): string => {
-  if (typeof window === 'undefined') return "light";
+  if (typeof window === "undefined") return "light";
   try {
     return localStorage.getItem("theme") || "light";
   } catch (e) {
@@ -21,7 +21,7 @@ const getInitialTheme = (): string => {
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
-  
+
   // Initialize state directly from the helper to avoid cascading hook renders
   const [theme, setThemeState] = useState<string>(getInitialTheme);
 
@@ -45,9 +45,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <GoogleOAuthProvider clientId={googleClientId}>
-      <ThemeContext.Provider value={{ theme, setTheme }}>
-        {children}
-      </ThemeContext.Provider>
+      <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>
     </GoogleOAuthProvider>
   );
 }

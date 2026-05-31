@@ -6,17 +6,7 @@ import Link from "next/link";
 
 import { usePathname, useRouter } from "next/navigation";
 
-import {
-  LayoutDashboard,
-  PackagePlus,
-  Boxes,
-  ShoppingCart,
-  Users,
-  Menu,
-  X,
-  LogOut,
-  BoxSelectIcon,
-} from "lucide-react";
+import { LayoutDashboard, PackagePlus, Boxes, ShoppingCart, Users, Menu, X, LogOut, BoxSelectIcon } from "lucide-react";
 
 import ThemeToggle from "../components/ThemeToggle";
 
@@ -27,11 +17,7 @@ import { FcComboChart } from "react-icons/fc";
 // COMPONENT
 // ======================================
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   const router = useRouter();
@@ -144,14 +130,9 @@ export default function AdminLayout({
       {/* ====================================== */}
 
       <div className="lg:hidden fixed top-0 left-0 w-full h-16 bg-white/90 dark:bg-card/90 backdrop-blur-xl border-b border-border flex items-center justify-between px-5 z-50">
-        <span className="font-black tracking-wider text-secondary text-sm">
-          CAMX ADMIN
-        </span>
+        <span className="font-black tracking-wider text-secondary text-sm">CAMX ADMIN</span>
 
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="w-10 h-10 rounded-xl border border-border bg-neutral-50 dark:bg-background flex items-center justify-center"
-        >
+        <button onClick={() => setIsOpen(!isOpen)} className="w-10 h-10 rounded-xl border border-border bg-neutral-50 dark:bg-background flex items-center justify-center">
           {isOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
@@ -160,11 +141,7 @@ export default function AdminLayout({
       {/* SIDEBAR */}
       {/* ====================================== */}
 
-      <aside
-        className={`fixed top-0 left-0 z-40 w-72 h-screen bg-white dark:bg-card border-r border-border flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
+      <aside className={`fixed top-0 left-0 z-40 w-72 h-screen bg-white dark:bg-card border-r border-border flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}>
         {/* CONTENT */}
         <div className="flex flex-col h-full overflow-y-auto">
           {/* LOGO */}
@@ -174,29 +151,16 @@ export default function AdminLayout({
               <span className="text-secondary">lk</span>
             </h2>
 
-            <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-neutral-400 mt-2">
-              Management Hub
-            </p>
+            <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-neutral-400 mt-2">Management Hub</p>
           </div>
 
           {/* NAVIGATION */}
           <nav className="flex-1 px-4 py-6 space-y-2">
             {menuItems.map((item, index) => {
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/admin" && pathname.startsWith(item.href));
+              const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href));
 
               return (
-                <Link
-                  key={index}
-                  href={item.href}
-                  onClick={() => setIsOpen(false)}
-                  className={`flex items-center gap-4 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 ${
-                    isActive
-                      ? "bg-secondary text-white shadow-lg shadow-secondary/20"
-                      : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-white/5 hover:text-neutral-900 dark:hover:text-white"
-                  }`}
-                >
+                <Link key={index} href={item.href} onClick={() => setIsOpen(false)} className={`flex items-center gap-4 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 ${isActive ? "bg-secondary text-white shadow-lg shadow-secondary/20" : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-white/5 hover:text-neutral-900 dark:hover:text-white"}`}>
                   {item.icon}
 
                   <span>{item.name}</span>
@@ -215,10 +179,7 @@ export default function AdminLayout({
             </div>
 
             {/* LOGOUT */}
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl font-bold text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
-            >
+            <button onClick={handleLogout} className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl font-bold text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition">
               <LogOut size={18} />
               Exit Panel
             </button>
@@ -230,21 +191,14 @@ export default function AdminLayout({
       {/* BACKDROP */}
       {/* ====================================== */}
 
-      {isOpen && (
-        <div
-          onClick={() => setIsOpen(false)}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
-        />
-      )}
+      {isOpen && <div onClick={() => setIsOpen(false)} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden" />}
 
       {/* ====================================== */}
       {/* MAIN CONTENT */}
       {/* ====================================== */}
 
       <div className="flex-1 lg:ml-72 min-w-0">
-        <main className="min-h-screen pt-16 lg:pt-0 overflow-x-hidden">
-          {children}
-        </main>
+        <main className="min-h-screen pt-16 lg:pt-0 overflow-x-hidden">{children}</main>
       </div>
     </div>
   );

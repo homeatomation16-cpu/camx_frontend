@@ -2,14 +2,7 @@
 
 import { motion, Variants } from "framer-motion";
 
-import {
-  Shield,
-  Camera,
-  Wrench,
-  Monitor,
-  Smartphone,
-  Lock,
-} from "lucide-react";
+import { Shield, Camera, Wrench, Monitor, Smartphone, Lock } from "lucide-react";
 
 /* ---------------- TYPES ---------------- */
 
@@ -24,15 +17,13 @@ type Service = {
 const SECURITY_SERVICES: Service[] = [
   {
     title: "CCTV Installation",
-    description:
-      "Professional CCTV camera installation for homes, offices and shops.",
+    description: "Professional CCTV camera installation for homes, offices and shops.",
     icon: Camera,
   },
 
   {
     title: "Access Control",
-    description:
-      "Smart door access systems with fingerprint and card technology.",
+    description: "Smart door access systems with fingerprint and card technology.",
     icon: Lock,
   },
 
@@ -108,28 +99,14 @@ export default function ServicesSection() {
 
       <div className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8">
         {/* SECURITY */}
-        <Section
-          title="Security & CCTV Installation Services"
-          subtitle="Professional surveillance and protection solutions."
-          services={SECURITY_SERVICES}
-        />
+        <Section title="Security & CCTV Installation Services" subtitle="Professional surveillance and protection solutions." services={SECURITY_SERVICES} />
 
         {/* INTERNAL LINKS */}
         <div className="mb-28 text-center text-sm text-foreground/60">
           CCTV installation areas we serve:&nbsp;
-          {[
-            "Colombo",
-            "Piliyandala",
-            "Kesbewa",
-            "Boralesgamuwa",
-            "Horana",
-            "Bandaragama",
-          ].map((city, index) => (
+          {["Colombo", "Piliyandala", "Kesbewa", "Boralesgamuwa", "Horana", "Bandaragama"].map((city, index) => (
             <span key={city}>
-              <a
-                href={`/services/${city.toLowerCase()}`}
-                className="font-medium text-secondary hover:text-accent transition"
-              >
+              <a href={`/services/${city.toLowerCase()}`} className="font-medium text-secondary hover:text-accent transition">
                 {city}
               </a>
 
@@ -139,18 +116,10 @@ export default function ServicesSection() {
         </div>
 
         {/* IT */}
-        <Section
-          title="IT & Computer Repair Services"
-          subtitle="Reliable computer repair and support."
-          services={IT_SERVICES}
-        />
+        <Section title="IT & Computer Repair Services" subtitle="Reliable computer repair and support." services={IT_SERVICES} />
 
         {/* MOBILE */}
-        <Section
-          title="Mobile Repair Services"
-          subtitle="Professional smartphone repair services."
-          services={MOBILE_SERVICES}
-        />
+        <Section title="Mobile Repair Services" subtitle="Professional smartphone repair services." services={MOBILE_SERVICES} />
       </div>
     </section>
   );
@@ -158,48 +127,22 @@ export default function ServicesSection() {
 
 /* ---------------- SECTION ---------------- */
 
-function Section({
-  title,
-  subtitle,
-  services,
-}: {
-  title: string;
-  subtitle: string;
-  services: Service[];
-}) {
+function Section({ title, subtitle, services }: { title: string; subtitle: string; services: Service[] }) {
   return (
     <div className="mb-10">
       {/* HEADER */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-        className="mb-16 text-center"
-      >
+      <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="mb-16 text-center">
         <div className="mb-5 inline-flex rounded-full border border-secondary/20 bg-secondary/5 px-5 py-2">
-          <span className="text-xs font-bold uppercase tracking-[0.28em] text-secondary">
-            CAMX Secure
-          </span>
+          <span className="text-xs font-bold uppercase tracking-[0.28em] text-secondary">CAMX Secure</span>
         </div>
 
-        <h2 className="text-4xl font-black tracking-tight text-foreground lg:text-5xl">
-          {title}
-        </h2>
+        <h2 className="text-4xl font-black tracking-tight text-foreground lg:text-5xl">{title}</h2>
 
-        <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-foreground/60 lg:text-lg">
-          {subtitle}
-        </p>
+        <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-foreground/60 lg:text-lg">{subtitle}</p>
       </motion.div>
 
       {/* GRID */}
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: true }}
-        className="grid gap-7 md:grid-cols-2 xl:grid-cols-3"
-      >
+      <motion.div variants={containerVariants} initial="hidden" whileInView="show" viewport={{ once: true }} className="grid gap-7 md:grid-cols-2 xl:grid-cols-3">
         {services.map((service) => (
           <ServiceCard key={service.title} service={service} />
         ))}
@@ -244,14 +187,10 @@ function ServiceCard({ service }: { service: Service }) {
       </div>
 
       {/* TITLE */}
-      <h3 className="relative z-10 mb-4 text-2xl font-bold text-foreground transition group-hover:text-secondary">
-        {service.title}
-      </h3>
+      <h3 className="relative z-10 mb-4 text-2xl font-bold text-foreground transition group-hover:text-secondary">{service.title}</h3>
 
       {/* DESC */}
-      <p className="relative z-10 leading-7 text-foreground/65">
-        {service.description}
-      </p>
+      <p className="relative z-10 leading-7 text-foreground/65">{service.description}</p>
 
       {/* BAR */}
       <div className="absolute bottom-0 left-0 h-1 w-0 bg-secondary transition-all duration-500 group-hover:w-full" />

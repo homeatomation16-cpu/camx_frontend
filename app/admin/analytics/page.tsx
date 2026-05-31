@@ -2,32 +2,9 @@
 
 import axios from "axios";
 import { useEffect, useState } from "react";
-import {
-  ShoppingCart,
-  DollarSign,
-  Package,
-  Users,
-  TrendingUp,
-  Boxes,
-  Calendar,
-  Award,
-} from "lucide-react";
+import { ShoppingCart, DollarSign, Package, Users, TrendingUp, Boxes, Calendar, Award } from "lucide-react";
 
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  AreaChart,
-  Area,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-} from "recharts";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, AreaChart, Area, PieChart, Pie, Cell, Legend } from "recharts";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
@@ -76,16 +53,15 @@ export default function AdminAnalyticsPage() {
       const token = localStorage.getItem("CAMX_TOKEN");
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [comprehensiveRes, usersRes, productsRes, categoryRes] =
-        await Promise.all([
-          axios.get(`${API}api/orders/analytics/comprehensive`, {
-            signal,
-            headers,
-          }),
-          axios.get(`${API}api/users/all`, { signal, headers }),
-          axios.get(`${API}api/products`, { signal, headers }),
-          axios.get(`${API}api/products/categories`, { signal, headers }),
-        ]);
+      const [comprehensiveRes, usersRes, productsRes, categoryRes] = await Promise.all([
+        axios.get(`${API}api/orders/analytics/comprehensive`, {
+          signal,
+          headers,
+        }),
+        axios.get(`${API}api/users/all`, { signal, headers }),
+        axios.get(`${API}api/products`, { signal, headers }),
+        axios.get(`${API}api/products/categories`, { signal, headers }),
+      ]);
 
       const compData = comprehensiveRes.data;
 
@@ -126,9 +102,7 @@ export default function AdminAnalyticsPage() {
       <div className="min-h-screen flex items-center justify-center bg-[#f8f9fa] text-gray-500">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-lg font-medium animate-pulse">
-            Loading Analytics Dashboard...
-          </p>
+          <p className="text-lg font-medium animate-pulse">Loading Analytics Dashboard...</p>
         </div>
       </div>
     );
@@ -208,31 +182,18 @@ export default function AdminAnalyticsPage() {
             <TrendingUp size={24} />
           </div>
           <div>
-            <h1 className="text-[28px] font-bold leading-tight">
-              Analytics Dashboard
-            </h1>
-            <p className="text-gray-500 text-sm mt-0.5">
-              Comprehensive overview of sales, users, and inventory
-            </p>
+            <h1 className="text-[28px] font-bold leading-tight">Analytics Dashboard</h1>
+            <p className="text-gray-500 text-sm mt-0.5">Comprehensive overview of sales, users, and inventory</p>
           </div>
         </div>
 
         {/* SUMMARY CARDS GRID */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {summaryCards.map((card, index) => (
-            <div
-              key={index}
-              className="bg-white dark:bg-card p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between group"
-            >
+            <div key={index} className="bg-white dark:bg-card p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between group">
               <div className="flex items-center justify-between mb-4">
-                <p className="text-sm font-medium text-gray-500 group-hover:text-gray-700 transition-colors">
-                  {card.title}
-                </p>
-                <div
-                  className={`p-2 rounded-lg ${card.bg} transition-transform group-hover:scale-110`}
-                >
-                  {card.icon}
-                </div>
+                <p className="text-sm font-medium text-gray-500 group-hover:text-gray-700 transition-colors">{card.title}</p>
+                <div className={`p-2 rounded-lg ${card.bg} transition-transform group-hover:scale-110`}>{card.icon}</div>
               </div>
               <h3 className="text-2xl font-bold truncate">{card.value}</h3>
             </div>
@@ -243,45 +204,20 @@ export default function AdminAnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-2">
           {/* AREA CHART (Span 2) */}
           <div className="bg-white dark:bg-card rounded-2xl border border-gray-100 shadow-sm p-6 lg:col-span-2">
-            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-              📈 Revenue Growth
-            </h3>
+            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">📈 Revenue Growth</h3>
             {/* Tailwind warning හදන ලදී (h-[300px] -> h-75) */}
             <div className="h-75 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={growthData}
-                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                >
+                <AreaChart data={growthData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <defs>
-                    <linearGradient
-                      id="colorRevenue"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4} />
                       <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    vertical={false}
-                    stroke="#f3f4f6"
-                  />
-                  <XAxis
-                    dataKey="month"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#6b7280", fontSize: 12 }}
-                    dy={10}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#6b7280", fontSize: 12 }}
-                  />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "#6b7280", fontSize: 12 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: "#6b7280", fontSize: 12 }} />
                   {/* Typescript formatter warning හදන ලදී (any type භාවිතයෙන්) */}
                   <Tooltip
                     contentStyle={{
@@ -289,19 +225,9 @@ export default function AdminAnalyticsPage() {
                       border: "none",
                       boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                     }}
-                    formatter={(value: unknown) => [
-                      `Rs. ${Number(value).toLocaleString()}`,
-                      "Revenue",
-                    ]}
+                    formatter={(value: unknown) => [`Rs. ${Number(value).toLocaleString()}`, "Revenue"]}
                   />
-                  <Area
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#22c55e"
-                    strokeWidth={3}
-                    fillOpacity={1}
-                    fill="url(#colorRevenue)"
-                  />
+                  <Area type="monotone" dataKey="revenue" stroke="#22c55e" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -309,28 +235,14 @@ export default function AdminAnalyticsPage() {
 
           {/* PIE CHART (Span 1) */}
           <div className="bg-white dark:bg-card rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-              🎯 System Distribution
-            </h3>
+            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">🎯 System Distribution</h3>
             {/* Tailwind warning හදන ලදී */}
             <div className="h-75 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="45%"
-                    innerRadius={70}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="value"
-                    stroke="none"
-                  >
+                  <Pie data={pieData} cx="50%" cy="45%" innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="value" stroke="none">
                     {pieData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={PIE_COLORS[index % PIE_COLORS.length]}
-                      />
+                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip
@@ -340,11 +252,7 @@ export default function AdminAnalyticsPage() {
                       boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                     }}
                   />
-                  <Legend
-                    verticalAlign="bottom"
-                    height={36}
-                    iconType="circle"
-                  />
+                  <Legend verticalAlign="bottom" height={36} iconType="circle" />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -356,37 +264,16 @@ export default function AdminAnalyticsPage() {
           {/* CATEGORY BAR CHART */}
           <div className="bg-white dark:bg-card rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                🗂️ Category Distribution
-              </h3>
-              <div className="px-3 py-1 rounded-full bg-pink-100 text-pink-600 text-xs font-bold">
-                {analytics.categoryDistribution.length} Categories
-              </div>
+              <h3 className="text-lg font-bold flex items-center gap-2">🗂️ Category Distribution</h3>
+              <div className="px-3 py-1 rounded-full bg-pink-100 text-pink-600 text-xs font-bold">{analytics.categoryDistribution.length} Categories</div>
             </div>
             {/* Tailwind warning හදන ලදී (flex-grow -> grow, h-[300px] -> h-75) */}
             <div className="h-75 w-full grow">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={analytics.categoryDistribution}
-                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    vertical={false}
-                    stroke="#f3f4f6"
-                  />
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#6b7280", fontSize: 12 }}
-                    dy={10}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#6b7280", fontSize: 12 }}
-                  />
+                <BarChart data={analytics.categoryDistribution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#6b7280", fontSize: 12 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: "#6b7280", fontSize: 12 }} />
                   <Tooltip
                     cursor={{ fill: "#f9fafb" }}
                     contentStyle={{
@@ -395,12 +282,7 @@ export default function AdminAnalyticsPage() {
                       boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                     }}
                   />
-                  <Bar
-                    dataKey="count"
-                    fill="#ec4899"
-                    radius={[6, 6, 0, 0]}
-                    barSize={45}
-                  />
+                  <Bar dataKey="count" fill="#ec4899" radius={[6, 6, 0, 0]} barSize={45} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -409,8 +291,7 @@ export default function AdminAnalyticsPage() {
           {/* BEST SELLERS TABLE */}
           <div className="bg-white dark:bg-card rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
             <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-              <Award className="text-yellow-500" size={24} /> Best Selling
-              Products
+              <Award className="text-yellow-500" size={24} /> Best Selling Products
             </h3>
             {analytics.bestSellers.length > 0 ? (
               // Tailwind warning හදන ලදී (flex-grow -> grow)
@@ -418,40 +299,24 @@ export default function AdminAnalyticsPage() {
                 <table className="w-full text-sm text-left border-collapse">
                   <thead className="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-gray-800/50">
                     <tr>
-                      <th className="px-4 py-3 rounded-l-lg font-semibold">
-                        Product Name
-                      </th>
-                      <th className="px-4 py-3 text-center font-semibold">
-                        Sold Qty
-                      </th>
-                      <th className="px-4 py-3 text-right rounded-r-lg font-semibold">
-                        Revenue
-                      </th>
+                      <th className="px-4 py-3 rounded-l-lg font-semibold">Product Name</th>
+                      <th className="px-4 py-3 text-center font-semibold">Sold Qty</th>
+                      <th className="px-4 py-3 text-right rounded-r-lg font-semibold">Revenue</th>
                     </tr>
                   </thead>
                   <tbody>
                     {analytics.bestSellers.map((item, i) => (
-                      <tr
-                        key={i}
-                        className="border-b border-gray-100 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors"
-                      >
+                      <tr key={i} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors">
                         <td className="px-4 py-4 font-medium text-gray-800 dark:text-gray-200">
                           <div className="flex items-center gap-2">
-                            <span className="w-5 h-5 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs font-bold">
-                              {i + 1}
-                            </span>
+                            <span className="w-5 h-5 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs font-bold">{i + 1}</span>
                             {item.name}
                           </div>
                         </td>
                         <td className="px-4 py-4 text-center font-bold text-orange-500">
-                          {item.totalSold}{" "}
-                          <span className="text-xs font-normal text-gray-400">
-                            units
-                          </span>
+                          {item.totalSold} <span className="text-xs font-normal text-gray-400">units</span>
                         </td>
-                        <td className="px-4 py-4 text-right text-green-600 font-bold">
-                          Rs. {item.revenue.toLocaleString()}
-                        </td>
+                        <td className="px-4 py-4 text-right text-green-600 font-bold">Rs. {item.revenue.toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>

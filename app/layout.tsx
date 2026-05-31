@@ -33,12 +33,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      data-scroll-behavior="smooth"
-      className={`${geistSans.variable} ${geistMono.variable}`}
-    >
+    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body
         className="
           min-h-screen
@@ -49,9 +44,7 @@ export default function RootLayout({
           duration-300
         "
       >
-        <GoogleOAuthProvider
-          clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}
-        >
+        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
           <Providers>
             <Header />
 

@@ -108,9 +108,7 @@ export default function ProductAddPage() {
         };
       });
 
-      const validSpecs = extractedSpecs.filter(
-        (spec) => spec.title && spec.value,
-      );
+      const validSpecs = extractedSpecs.filter((spec) => spec.title && spec.value);
 
       if (validSpecs.length > 0) {
         setSpecifications(validSpecs);
@@ -151,15 +149,9 @@ export default function ProductAddPage() {
 
         formData.append("file", file);
 
-        formData.append(
-          "upload_preset",
-          process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "",
-        );
+        formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "");
 
-        const uploadResponse = await axios.post(
-          `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-          formData,
-        );
+        const uploadResponse = await axios.post(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, formData);
 
         uploadedImages.push(uploadResponse.data.secure_url);
       }
@@ -707,15 +699,7 @@ export default function ProductAddPage() {
                       overflow-hidden
                     "
                 >
-                  <Image
-                    src={url}
-                    alt="preview"
-                    fill
-                    unoptimized
-                    loading="lazy"
-                    sizes="200px"
-                    className="object-cover"
-                  />
+                  <Image src={url} alt="preview" fill unoptimized loading="lazy" sizes="200px" className="object-cover" />
                 </div>
               ))}
             </div>
@@ -868,11 +852,7 @@ export default function ProductAddPage() {
               text-sm
               font-semibold
               border
-              ${
-                message.includes("✅")
-                  ? "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400"
-                  : "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400"
-              }
+              ${message.includes("✅") ? "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400" : "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400"}
             `}
           >
             {message}

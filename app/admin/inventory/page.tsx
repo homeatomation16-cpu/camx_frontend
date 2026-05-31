@@ -1,32 +1,10 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Image from "next/image";
-import {
-  Search,
-  Package,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  Plus,
-  Edit2,
-  Trash2,
-  X,
-} from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
+import { Search, Package, TrendingUp, TrendingDown, AlertTriangle, Plus, Edit2, Trash2, X } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 
 // ======================================
 // CONFIG & TYPES
@@ -52,10 +30,10 @@ type Product = {
 // IMAGE URL HELPER
 // ======================================
 const safeImage = (image?: string) => {
-  if (image && (image.startsWith('http') || image.startsWith('/'))) {
+  if (image && (image.startsWith("http") || image.startsWith("/"))) {
     return image;
   }
-  return '/placeholder.jpg';
+  return "/placeholder.jpg";
 };
 
 export default function InventoryManagementPage() {
@@ -73,15 +51,15 @@ export default function InventoryManagementPage() {
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    productId: '',
-    name: '',
-    description: '',
+    productId: "",
+    name: "",
+    description: "",
     price: 0,
     labelPrice: 0,
     stock: 0,
-    category: '',
-    brand: '',
-    images: [''],
+    category: "",
+    brand: "",
+    images: [""],
     isAvailable: true,
   });
 
@@ -106,7 +84,7 @@ export default function InventoryManagementPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    
+
     // Fixed ESLint Warning by using queueMicrotask
     queueMicrotask(() => {
       fetchProducts(controller.signal);
@@ -120,7 +98,7 @@ export default function InventoryManagementPage() {
   // ======================================
   const handleDelete = async (productId: string) => {
     try {
-      const token = localStorage.getItem('CAMX_TOKEN');
+      const token = localStorage.getItem("CAMX_TOKEN");
       await axios.delete(`${API}/api/products/${productId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -136,13 +114,13 @@ export default function InventoryManagementPage() {
     setFormData({
       productId: product.productId,
       name: product.name,
-      description: product.description || '',
+      description: product.description || "",
       price: product.price,
       labelPrice: product.labelPrice || product.price,
       stock: product.stock,
-      category: product.category || '',
-      brand: product.brand || '',
-      images: product.images && product.images.length > 0 ? product.images : [''],
+      category: product.category || "",
+      brand: product.brand || "",
+      images: product.images && product.images.length > 0 ? product.images : [""],
       isAvailable: product.isAvailable,
     });
   };
@@ -150,15 +128,23 @@ export default function InventoryManagementPage() {
   const openCreateModal = () => {
     setEditingProduct(null);
     setFormData({
-      productId: '', name: '', description: '', price: 0, labelPrice: 0,
-      stock: 0, category: '', brand: '', images: [''], isAvailable: true,
+      productId: "",
+      name: "",
+      description: "",
+      price: 0,
+      labelPrice: 0,
+      stock: 0,
+      category: "",
+      brand: "",
+      images: [""],
+      isAvailable: true,
     });
     setShowCreateModal(true);
   };
 
   const handleSave = async () => {
     try {
-      const token = localStorage.getItem('CAMX_TOKEN');
+      const token = localStorage.getItem("CAMX_TOKEN");
       if (editingProduct) {
         await axios.put(`${API}/api/products/${editingProduct.productId}`, formData, {
           headers: { Authorization: `Bearer ${token}` },
@@ -186,10 +172,8 @@ export default function InventoryManagementPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    if (status === "In Stock")
-      return <span className="text-green-600 bg-green-50 px-3 py-1 rounded-full text-xs font-medium border border-green-100">In Stock</span>;
-    if (status === "Low Stock")
-      return <span className="text-yellow-600 bg-yellow-50 px-3 py-1 rounded-full text-xs font-medium border border-yellow-100">Low Stock</span>;
+    if (status === "In Stock") return <span className="text-green-600 bg-green-50 px-3 py-1 rounded-full text-xs font-medium border border-green-100">In Stock</span>;
+    if (status === "Low Stock") return <span className="text-yellow-600 bg-yellow-50 px-3 py-1 rounded-full text-xs font-medium border border-yellow-100">Low Stock</span>;
     return <span className="text-red-600 bg-red-50 px-3 py-1 rounded-full text-xs font-medium border border-red-100">Out of Stock</span>;
   };
 
@@ -197,11 +181,8 @@ export default function InventoryManagementPage() {
   // DATA PROCESSING
   // ======================================
   const filteredProducts = products.filter((p) => {
-    const textMatch =
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.productId.toLowerCase().includes(search.toLowerCase());
-    const statusMatch =
-      statusFilter === "all" || getStockStatus(p.stock) === statusFilter;
+    const textMatch = p.name.toLowerCase().includes(search.toLowerCase()) || p.productId.toLowerCase().includes(search.toLowerCase());
+    const statusMatch = statusFilter === "all" || getStockStatus(p.stock) === statusFilter;
     return textMatch && statusMatch;
   });
 
@@ -218,7 +199,7 @@ export default function InventoryManagementPage() {
       if (!acc[cat]) acc[cat] = { category: cat, stock: 0 };
       acc[cat].stock += p.stock;
       return acc;
-    }, {})
+    }, {}),
   );
 
   const inventoryValueData = products.map((p) => ({
@@ -252,17 +233,13 @@ export default function InventoryManagementPage() {
     <div className="min-h-screen bg-[#f8f9fa] p-4 lg:p-8 font-sans">
       {/* Changed max-w-[1400px] to max-w-350 */}
       <div className="max-w-350 mx-auto flex flex-col gap-6">
-        
         {/* HEADER */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div>
             <h1 className="text-[28px] font-bold text-gray-900">Inventory Management</h1>
             <p className="text-gray-500 text-sm mt-1">Stock overview, analytics & control</p>
           </div>
-          <button
-            onClick={openCreateModal}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-medium transition shadow-sm"
-          >
+          <button onClick={openCreateModal} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-medium transition shadow-sm">
             <Plus size={20} /> Add Product
           </button>
         </div>
@@ -307,9 +284,9 @@ export default function InventoryManagementPage() {
             <div className="h-62.5 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stockByCategory}>
-                  <XAxis dataKey="category" axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} />
-                  <YAxis axisLine={true} tickLine={true} tick={{fill: '#9ca3af', fontSize: 12}} />
-                  <Tooltip cursor={{fill: '#f3f4f6'}} />
+                  <XAxis dataKey="category" axisLine={false} tickLine={false} tick={{ fill: "#9ca3af", fontSize: 12 }} />
+                  <YAxis axisLine={true} tickLine={true} tick={{ fill: "#9ca3af", fontSize: 12 }} />
+                  <Tooltip cursor={{ fill: "#f3f4f6" }} />
                   <Bar dataKey="stock" fill="#3b82f6" barSize={35} />
                 </BarChart>
               </ResponsiveContainer>
@@ -347,8 +324,8 @@ export default function InventoryManagementPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={inventoryValueData.slice(0, 8)}>
                   <XAxis dataKey="name" hide />
-                  <YAxis axisLine={true} tickLine={true} tick={{fill: '#9ca3af', fontSize: 12}} />
-                  <Tooltip cursor={{fill: '#f3f4f6'}} />
+                  <YAxis axisLine={true} tickLine={true} tick={{ fill: "#9ca3af", fontSize: 12 }} />
+                  <Tooltip cursor={{ fill: "#f3f4f6" }} />
                   <Bar dataKey="value" fill="#22c55e" barSize={50} />
                 </BarChart>
               </ResponsiveContainer>
@@ -367,9 +344,9 @@ export default function InventoryManagementPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={lowStockTrend}>
                     <XAxis dataKey="name" hide />
-                    <YAxis axisLine={true} tickLine={true} tick={{fill: '#9ca3af', fontSize: 12}} />
+                    <YAxis axisLine={true} tickLine={true} tick={{ fill: "#9ca3af", fontSize: 12 }} />
                     <Tooltip />
-                    <Line type="linear" dataKey="stock" stroke="#eab308" strokeWidth={2} dot={{ fill: '#eab308', strokeWidth: 2, r: 4 }} activeDot={{ r: 6 }} />
+                    <Line type="linear" dataKey="stock" stroke="#eab308" strokeWidth={2} dot={{ fill: "#eab308", strokeWidth: 2, r: 4 }} activeDot={{ r: 6 }} />
                   </LineChart>
                 </ResponsiveContainer>
               )}
@@ -381,19 +358,9 @@ export default function InventoryManagementPage() {
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4 items-center">
           <div className="relative flex-1 w-full">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Search by name or Product ID"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm"
-            />
+            <input type="text" placeholder="Search by name or Product ID" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm" />
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full sm:w-48 p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500 cursor-pointer bg-white text-sm"
-          >
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full sm:w-48 p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500 cursor-pointer bg-white text-sm">
             <option value="all">All</option>
             <option value="In Stock">In Stock</option>
             <option value="Low Stock">Low Stock</option>
@@ -426,37 +393,23 @@ export default function InventoryManagementPage() {
                       {/* IMAGE COLUMN */}
                       <td className="px-6 py-3">
                         <div className="relative h-12 w-12 rounded-xl overflow-hidden border border-gray-200 bg-gray-50 shadow-sm">
-                          <Image
-                            src={safeImage(p.images?.[0])}
-                            alt={p.name}
-                            fill
-                            className="object-cover"
-                            unoptimized
-                          />
+                          <Image src={safeImage(p.images?.[0])} alt={p.name} fill className="object-cover" unoptimized />
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 font-mono">{p.productId}</td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">{p.name}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{p.category || 'N/A'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{p.category || "N/A"}</td>
                       <td className="px-6 py-4 text-sm text-gray-900">{p.stock}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">LKR {p.price.toLocaleString()}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">LKR {(p.stock * p.price).toLocaleString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(status)}
-                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(status)}</td>
                       {/* ACTIONS COLUMN */}
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => openEditModal(p)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                          >
+                          <button onClick={() => openEditModal(p)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
                             <Edit2 size={18} />
                           </button>
-                          <button
-                            onClick={() => setDeleteProductId(p.productId)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                          >
+                          <button onClick={() => setDeleteProductId(p.productId)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition">
                             <Trash2 size={18} />
                           </button>
                         </div>
@@ -486,16 +439,10 @@ export default function InventoryManagementPage() {
             <h3 className="text-xl font-bold mb-2">Delete Product</h3>
             <p className="text-gray-600 mb-6 text-sm">Are you sure you want to delete this product? This action cannot be undone.</p>
             <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setDeleteProductId(null)}
-                className="px-4 py-2 rounded-xl font-medium hover:bg-gray-100 transition"
-              >
+              <button onClick={() => setDeleteProductId(null)} className="px-4 py-2 rounded-xl font-medium hover:bg-gray-100 transition">
                 Cancel
               </button>
-              <button
-                onClick={() => handleDelete(deleteProductId)}
-                className="px-4 py-2 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition"
-              >
+              <button onClick={() => handleDelete(deleteProductId)} className="px-4 py-2 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition">
                 Delete
               </button>
             </div>
@@ -508,9 +455,7 @@ export default function InventoryManagementPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold text-gray-900">
-                {editingProduct ? 'Edit Product' : 'Add New Product'}
-              </h3>
+              <h3 className="text-2xl font-bold text-gray-900">{editingProduct ? "Edit Product" : "Add New Product"}</h3>
               <button
                 onClick={() => {
                   setShowCreateModal(false);
@@ -525,73 +470,37 @@ export default function InventoryManagementPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Product ID</label>
-                <input
-                  type="text"
-                  value={formData.productId}
-                  onChange={(e) => setFormData({ ...formData, productId: e.target.value })}
-                  disabled={!!editingProduct}
-                  className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all disabled:bg-gray-50 disabled:text-gray-500 text-sm"
-                />
+                <input type="text" value={formData.productId} onChange={(e) => setFormData({ ...formData, productId: e.target.value })} disabled={!!editingProduct} className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all disabled:bg-gray-50 disabled:text-gray-500 text-sm" />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm"
-                />
+                <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm" />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Category</label>
-                <input
-                  type="text"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm"
-                />
+                <input type="text" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm" />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Brand</label>
-                <input
-                  type="text"
-                  value={formData.brand}
-                  onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                  className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm"
-                />
+                <input type="text" value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value })} className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm" />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Selling Price (LKR)</label>
-                <input
-                  type="number"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                  className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm"
-                />
+                <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm" />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Stock Quantity</label>
-                <input
-                  type="number"
-                  value={formData.stock}
-                  onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
-                  className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm"
-                />
+                <input type="number" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })} className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm" />
               </div>
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
-                <textarea
-                  rows={3}
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none text-sm"
-                />
+                <textarea rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none text-sm" />
               </div>
             </div>
 
@@ -605,11 +514,8 @@ export default function InventoryManagementPage() {
               >
                 Cancel
               </button>
-              <button
-                onClick={handleSave}
-                className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition shadow-sm"
-              >
-                {editingProduct ? 'Save Changes' : 'Create Product'}
+              <button onClick={handleSave} className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition shadow-sm">
+                {editingProduct ? "Save Changes" : "Create Product"}
               </button>
             </div>
           </div>

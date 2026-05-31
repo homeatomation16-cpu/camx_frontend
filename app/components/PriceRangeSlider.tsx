@@ -1,19 +1,7 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 
-export default function PriceRangeSlider({
-  min,
-  max,
-  minVal,
-  maxVal,
-  onChange,
-}: {
-  min: number;
-  max: number;
-  minVal: number;
-  maxVal: number;
-  onChange: (min: number, max: number) => void;
-}) {
+export default function PriceRangeSlider({ min, max, minVal, maxVal, onChange }: { min: number; max: number; minVal: number; maxVal: number; onChange: (min: number, max: number) => void }) {
   const rangeRef = useRef<HTMLDivElement>(null);
   const [activeThumb, setActiveThumb] = useState<"min" | "max" | null>(null);
 
@@ -30,20 +18,15 @@ export default function PriceRangeSlider({
     onChange(minVal, value);
   }
 
-  const formatPrice = (val: number) =>
-    val >= 1000 ? `Rs ${(val / 1000).toFixed(0)}k` : `Rs ${val}`;
+  const formatPrice = (val: number) => (val >= 1000 ? `Rs ${(val / 1000).toFixed(0)}k` : `Rs ${val}`);
 
   return (
     <div className="w-full select-none">
       {/* PRICE DISPLAY */}
       <div className="mb-5 flex items-center justify-between">
         <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800/60">
-          <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400">
-            Min
-          </p>
-          <p className="text-sm font-black text-secondary">
-            Rs {minVal.toLocaleString()}
-          </p>
+          <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400">Min</p>
+          <p className="text-sm font-black text-secondary">Rs {minVal.toLocaleString()}</p>
         </div>
 
         <div className="flex items-center gap-1">
@@ -53,12 +36,8 @@ export default function PriceRangeSlider({
         </div>
 
         <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-right dark:border-neutral-700 dark:bg-neutral-800/60">
-          <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400">
-            Max
-          </p>
-          <p className="text-sm font-black text-secondary">
-            Rs {maxVal.toLocaleString()}
-          </p>
+          <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400">Max</p>
+          <p className="text-sm font-black text-secondary">Rs {maxVal.toLocaleString()}</p>
         </div>
       </div>
 
@@ -78,42 +57,13 @@ export default function PriceRangeSlider({
         />
 
         {/* MIN INPUT (invisible, on top) */}
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={500}
-          value={minVal}
-          onChange={handleMinChange}
-          onMouseDown={() => setActiveThumb("min")}
-          onTouchStart={() => setActiveThumb("min")}
-          onMouseUp={() => setActiveThumb(null)}
-          onTouchEnd={() => setActiveThumb(null)}
-          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-          style={{ zIndex: minVal > max - 1000 ? 5 : 3 }}
-        />
+        <input type="range" min={min} max={max} step={500} value={minVal} onChange={handleMinChange} onMouseDown={() => setActiveThumb("min")} onTouchStart={() => setActiveThumb("min")} onMouseUp={() => setActiveThumb(null)} onTouchEnd={() => setActiveThumb(null)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" style={{ zIndex: minVal > max - 1000 ? 5 : 3 }} />
 
         {/* MAX INPUT (invisible, on top) */}
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={500}
-          value={maxVal}
-          onChange={handleMaxChange}
-          onMouseDown={() => setActiveThumb("max")}
-          onTouchStart={() => setActiveThumb("max")}
-          onMouseUp={() => setActiveThumb(null)}
-          onTouchEnd={() => setActiveThumb(null)}
-          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-          style={{ zIndex: 4 }}
-        />
+        <input type="range" min={min} max={max} step={500} value={maxVal} onChange={handleMaxChange} onMouseDown={() => setActiveThumb("max")} onTouchStart={() => setActiveThumb("max")} onMouseUp={() => setActiveThumb(null)} onTouchEnd={() => setActiveThumb(null)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" style={{ zIndex: 4 }} />
 
         {/* MIN THUMB */}
-        <div
-          className="pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
-          style={{ left: `${minPercent}%` }}
-        >
+        <div className="pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ left: `${minPercent}%` }}>
           <motion.div
             animate={{
               scale: activeThumb === "min" ? 1.25 : 1,
@@ -126,11 +76,7 @@ export default function PriceRangeSlider({
 
           {/* MIN TOOLTIP */}
           {activeThumb === "min" && (
-            <motion.div
-              initial={{ opacity: 0, y: 4, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-secondary px-2 py-1 text-[10px] font-black text-white shadow-md"
-            >
+            <motion.div initial={{ opacity: 0, y: 4, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-secondary px-2 py-1 text-[10px] font-black text-white shadow-md">
               {formatPrice(minVal)}
               <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 border-4 border-transparent border-t-secondary" />
             </motion.div>
@@ -138,10 +84,7 @@ export default function PriceRangeSlider({
         </div>
 
         {/* MAX THUMB */}
-        <div
-          className="pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
-          style={{ left: `${maxPercent}%` }}
-        >
+        <div className="pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ left: `${maxPercent}%` }}>
           <motion.div
             animate={{
               scale: activeThumb === "max" ? 1.25 : 1,
@@ -154,11 +97,7 @@ export default function PriceRangeSlider({
 
           {/* MAX TOOLTIP */}
           {activeThumb === "max" && (
-            <motion.div
-              initial={{ opacity: 0, y: 4, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-secondary px-2 py-1 text-[10px] font-black text-white shadow-md"
-            >
+            <motion.div initial={{ opacity: 0, y: 4, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-secondary px-2 py-1 text-[10px] font-black text-white shadow-md">
               {formatPrice(maxVal)}
               <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 border-4 border-transparent border-t-secondary" />
             </motion.div>
@@ -181,9 +120,7 @@ export default function PriceRangeSlider({
                   onChange(minVal, val);
                 }
               }}
-              className={`text-[9px] font-semibold transition ${
-                inRange ? "text-secondary" : "text-neutral-400"
-              }`}
+              className={`text-[9px] font-semibold transition ${inRange ? "text-secondary" : "text-neutral-400"}`}
             >
               {formatPrice(val)}
             </button>

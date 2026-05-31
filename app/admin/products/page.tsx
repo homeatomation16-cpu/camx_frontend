@@ -3,11 +3,8 @@
 "use client";
 
 import Image from "next/image";
-
 import mammoth from "mammoth";
-
 import { useEffect, useState } from "react";
-
 import axios from "axios";
 
 type Product = {
@@ -81,9 +78,7 @@ export default function AdminProductsPage() {
   // HANDLE INPUT CHANGE
   // =========================
 
-  function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     if (!editingProduct) return;
 
     const { name, value } = e.target;
@@ -91,15 +86,12 @@ export default function AdminProductsPage() {
     setEditingProduct({
       ...editingProduct,
 
-      [name]:
-        name === "price" || name === "labelPrice" || name === "stock"
-          ? Number(value)
-          : value,
+      [name]: name === "price" || name === "labelPrice" || name === "stock" ? Number(value) : value,
     });
   }
 
   // =========================
-  // DOCX SPEC IMPORT
+  // DOCX TEMPLATE IMPORT
   // =========================
 
   const handleDocxUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,42 +104,22 @@ export default function AdminProductsPage() {
     try {
       const arrayBuffer = await file.arrayBuffer();
 
-      const result = await mammoth.extractRawText({
+      // DOCX -> HTML
+      const result = await mammoth.convertToHtml({
         arrayBuffer,
       });
 
-      const text = result.value;
-
-      const lines = text
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean);
-
-      const extractedSpecs = lines.map((line) => {
-        const parts = line.split(":");
-
-        return {
-          title: parts[0]?.trim() || "",
-
-          value: parts.slice(1).join(":").trim() || "",
-
-          image: "",
-        };
-      });
-
-      const validSpecs = extractedSpecs.filter(
-        (spec) => spec.title && spec.value,
-      );
+      const html = result.value;
 
       setEditingProduct({
         ...editingProduct,
 
         specifications: {
-          featureData: JSON.stringify(validSpecs),
+          featureData: html,
         },
       });
 
-      alert("DOCX specifications imported successfully");
+      alert("DOCX template imported successfully");
     } catch (error) {
       console.log(error);
 
@@ -165,15 +137,11 @@ export default function AdminProductsPage() {
     try {
       const token = localStorage.getItem("CAMX_TOKEN");
 
-      await axios.put(
-        `http://localhost:5000/api/products/${editingProduct.productId}`,
-        editingProduct,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      await axios.put(`http://localhost:5000/api/products/${editingProduct.productId}`, editingProduct, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
 
       alert("Product updated successfully");
 
@@ -258,7 +226,7 @@ export default function AdminProductsPage() {
           <div
             className="
               w-full
-              max-w-3xl
+              max-w-5xl
               bg-card
               border
               border-border
@@ -436,7 +404,7 @@ export default function AdminProductsPage() {
                 "
               />
 
-              {/* DOCX SPECIFICATIONS */}
+              {/* DOCX IMPORT */}
               <div className="md:col-span-2">
                 <label
                   className="
@@ -450,7 +418,7 @@ export default function AdminProductsPage() {
                     mb-2
                   "
                 >
-                  Upload DOCX Specification Sheet
+                  Upload DOCX Specification Template
                 </label>
 
                 <input
@@ -476,54 +444,36 @@ export default function AdminProductsPage() {
                 />
               </div>
 
-              {/* SPECIFICATIONS PREVIEW */}
+              {/* TEMPLATE PREVIEW */}
               {editingProduct?.specifications?.featureData && (
                 <div
                   className="
                     md:col-span-2
                     mt-4
-                    space-y-3
+                    rounded-3xl
+                    border
+                    border-border
+                    bg-white
+                    p-6
+                    overflow-x-auto
                   "
                 >
-                  {JSON.parse(editingProduct.specifications.featureData).map(
-                    (
-                      spec: {
-                        title: string;
-                        value: string;
-                      },
-                      index: number,
-                    ) => (
-                      <div
-                        key={index}
-                        className="
-                          p-4
-                          rounded-2xl
-                          border
-                          border-border
-                          bg-background
-                        "
-                      >
-                        <h4
-                          className="
-                            font-bold
-                            text-lg
-                          "
-                        >
-                          {spec.title}
-                        </h4>
-
-                        <p
-                          className="
-                            mt-1
-                            text-sm
-                            text-muted-foreground
-                          "
-                        >
-                          {spec.value}
-                        </p>
-                      </div>
-                    ),
-                  )}
+                  <div
+                    className="
+                      prose
+                      prose-sm
+                      max-w-none
+                      prose-table:w-full
+                      prose-table:border
+                      prose-td:border
+                      prose-th:border
+                      prose-td:p-2
+                      prose-th:p-2
+                    "
+                    dangerouslySetInnerHTML={{
+                      __html: editingProduct.specifications?.featureData || "",
+                    }}
+                  />
                 </div>
               )}
             </div>

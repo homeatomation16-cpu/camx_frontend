@@ -1,22 +1,11 @@
-'use client';
+"use client";
 
-import {
-  useEffect,
-  useState,
-  useCallback,
-} from "react";
+import { useEffect, useState, useCallback } from "react";
 
 import Image from "next/image";
 import axios from "axios";
 
-import {
-  Star,
-  ThumbsUp,
-  ThumbsDown,
-  BadgeCheck,
-  Plus,
-  X,
-} from "lucide-react";
+import { Star, ThumbsUp, ThumbsDown, BadgeCheck, Plus, X } from "lucide-react";
 
 interface Review {
   _id: string;
@@ -38,54 +27,38 @@ interface Props {
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
-export default function Reviews({
-  productId,
-}: Props) {
-  const [reviews, setReviews] = useState<
-    Review[]
-  >([]);
+export default function Reviews({ productId }: Props) {
+  const [reviews, setReviews] = useState<Review[]>([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [openForm, setOpenForm] =
-    useState(false);
+  const [openForm, setOpenForm] = useState(false);
 
   // FORM STATES
   const [name, setName] = useState("");
-  const [title, setTitle] =
-    useState("");
+  const [title, setTitle] = useState("");
 
-  const [comment, setComment] =
-    useState("");
+  const [comment, setComment] = useState("");
 
-  const [rating, setRating] =
-    useState(5);
+  const [rating, setRating] = useState(5);
 
   // =========================
   // FETCH REVIEWS
   // =========================
 
-  const fetchReviews = useCallback(
-    async () => {
-      try {
-        setLoading(true);
+  const fetchReviews = useCallback(async () => {
+    try {
+      setLoading(true);
 
-        const response = await axios.get(
-          `${API}/api/reviews/product/${productId}`
-        );
+      const response = await axios.get(`${API}/api/reviews/product/${productId}`);
 
-        setReviews(
-          response.data.reviews || []
-        );
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [productId]
-  );
+      setReviews(response.data.reviews || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }, [productId]);
 
   // =========================
   // EFFECT
@@ -105,27 +78,18 @@ export default function Reviews({
 
   async function addReview() {
     try {
-      if (
-        !name ||
-        !title ||
-        !comment
-      ) {
-        return alert(
-          "Please fill all fields"
-        );
+      if (!name || !title || !comment) {
+        return alert("Please fill all fields");
       }
 
-      await axios.post(
-        `${API}/api/reviews`,
-        {
-          productId,
-          name,
-          title,
-          comment,
-          rating,
-          verified: true,
-        }
-      );
+      await axios.post(`${API}/api/reviews`, {
+        productId,
+        name,
+        title,
+        comment,
+        rating,
+        verified: true,
+      });
 
       // RESET
       setName("");
@@ -146,15 +110,9 @@ export default function Reviews({
   // VOTE REVIEW
   // =========================
 
-  async function voteReview(
-    reviewId: string,
-    type: "helpful" | "notHelpful"
-  ) {
+  async function voteReview(reviewId: string, type: "helpful" | "notHelpful") {
     try {
-      await axios.patch(
-        `${API}/api/reviews/vote/${reviewId}`,
-        { type }
-      );
+      await axios.patch(`${API}/api/reviews/vote/${reviewId}`, { type });
 
       setReviews((prev) =>
         prev.map((review) =>
@@ -162,18 +120,12 @@ export default function Reviews({
             ? {
                 ...review,
 
-                helpful:
-                  type === "helpful"
-                    ? review.helpful + 1
-                    : review.helpful,
+                helpful: type === "helpful" ? review.helpful + 1 : review.helpful,
 
-                notHelpful:
-                  type === "notHelpful"
-                    ? review.notHelpful + 1
-                    : review.notHelpful,
+                notHelpful: type === "notHelpful" ? review.notHelpful + 1 : review.notHelpful,
               }
-            : review
-        )
+            : review,
+        ),
       );
     } catch (error) {
       console.error(error);
@@ -237,7 +189,6 @@ export default function Reviews({
       />
 
       <div className="relative z-10 max-w-7xl mx-auto px-6">
-
         {/* HEADER */}
         <div
           className="
@@ -283,17 +234,13 @@ export default function Reviews({
               "
             >
               What Customers
-              <span className="text-secondary">
-                {" "}Say
-              </span>
+              <span className="text-secondary"> Say</span>
             </h2>
           </div>
 
           {/* ADD REVIEW BUTTON */}
           <button
-            onClick={() =>
-              setOpenForm(true)
-            }
+            onClick={() => setOpenForm(true)}
             className="
               flex
               items-center
@@ -358,9 +305,7 @@ export default function Reviews({
                 </h3>
 
                 <button
-                  onClick={() =>
-                    setOpenForm(false)
-                  }
+                  onClick={() => setOpenForm(false)}
                   className="
                     p-2
                     rounded-xl
@@ -374,15 +319,12 @@ export default function Reviews({
 
               {/* FORM */}
               <div className="mt-8 space-y-5">
-
                 {/* NAME */}
                 <input
                   type="text"
                   placeholder="Your Name"
                   value={name}
-                  onChange={(e) =>
-                    setName(e.target.value)
-                  }
+                  onChange={(e) => setName(e.target.value)}
                   className="
                     w-full
                     h-14
@@ -401,9 +343,7 @@ export default function Reviews({
                   type="text"
                   placeholder="Review Title"
                   value={title}
-                  onChange={(e) =>
-                    setTitle(e.target.value)
-                  }
+                  onChange={(e) => setTitle(e.target.value)}
                   className="
                     w-full
                     h-14
@@ -419,24 +359,11 @@ export default function Reviews({
 
                 {/* RATING */}
                 <div className="flex items-center gap-3">
-                  {[1, 2, 3, 4, 5].map(
-                    (star) => (
-                      <button
-                        key={star}
-                        onClick={() =>
-                          setRating(star)
-                        }
-                      >
-                        <Star
-                          className={
-                            star <= rating
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "text-gray-300"
-                          }
-                        />
-                      </button>
-                    )
-                  )}
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button key={star} onClick={() => setRating(star)}>
+                      <Star className={star <= rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} />
+                    </button>
+                  ))}
                 </div>
 
                 {/* COMMENT */}
@@ -444,11 +371,7 @@ export default function Reviews({
                   rows={5}
                   placeholder="Write your review..."
                   value={comment}
-                  onChange={(e) =>
-                    setComment(
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => setComment(e.target.value)}
                   className="
                     w-full
                     rounded-2xl
@@ -505,8 +428,7 @@ export default function Reviews({
                 dark:text-gray-400
               "
             >
-              Be the first customer to review
-              this product.
+              Be the first customer to review this product.
             </p>
           </div>
         ) : (
@@ -573,17 +495,13 @@ export default function Reviews({
                         text-gray-500
                       "
                     >
-                      {new Date(
-                        review.createdAt
-                      ).toLocaleDateString()}
+                      {new Date(review.createdAt).toLocaleDateString()}
                     </p>
                   </div>
 
                   {/* STARS */}
                   <div className="flex gap-1">
-                    {[...Array(
-                      review.rating
-                    )].map((_, index) => (
+                    {[...Array(review.rating)].map((_, index) => (
                       <Star
                         key={index}
                         size={18}
@@ -622,30 +540,22 @@ export default function Reviews({
                 </p>
 
                 {/* IMAGES */}
-                {review.images?.length >
-                  0 && (
+                {review.images?.length > 0 && (
                   <div className="mt-6 flex flex-wrap gap-4">
-                    {review.images.map(
-                      (image, index) => (
-                        <div
-                          key={index}
-                          className="
+                    {review.images.map((image, index) => (
+                      <div
+                        key={index}
+                        className="
                             relative
                             w-24
                             h-24
                             rounded-2xl
                             overflow-hidden
                           "
-                        >
-                          <Image
-                            src={image}
-                            alt="Review"
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      )
-                    )}
+                      >
+                        <Image src={image} alt="Review" fill className="object-cover" />
+                      </div>
+                    ))}
                   </div>
                 )}
 
@@ -685,15 +595,9 @@ export default function Reviews({
 
                 {/* ACTIONS */}
                 <div className="mt-8 flex gap-5">
-
                   {/* HELPFUL */}
                   <button
-                    onClick={() =>
-                      voteReview(
-                        review._id,
-                        "helpful"
-                      )
-                    }
+                    onClick={() => voteReview(review._id, "helpful")}
                     className="
                       flex
                       items-center
@@ -711,12 +615,7 @@ export default function Reviews({
 
                   {/* NOT HELPFUL */}
                   <button
-                    onClick={() =>
-                      voteReview(
-                        review._id,
-                        "notHelpful"
-                      )
-                    }
+                    onClick={() => voteReview(review._id, "notHelpful")}
                     className="
                       flex
                       items-center
