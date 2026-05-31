@@ -61,9 +61,49 @@ export default function ProductCard({ product, onAddToCart }: Props) {
 
   const handleWishlist = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
+
     e.stopPropagation();
 
-    setIsWishlisted((prev) => !prev);
+    // GET EXISTING
+    const storedWishlist = localStorage.getItem("CAMX_WISHLIST");
+
+    const wishlist = storedWishlist ? JSON.parse(storedWishlist) : [];
+
+    // CHECK EXISTS
+    const exists = wishlist.find((item: { _id: string }) => item._id === product._id);
+
+    let updatedWishlist = [];
+
+    if (exists) {
+      // REMOVE
+      updatedWishlist = wishlist.filter((item: { _id: string }) => item._id !== product._id);
+
+      setIsWishlisted(false);
+    } else {
+      // ADD
+      updatedWishlist = [
+        ...wishlist,
+        {
+          _id: product._id,
+
+          name: product.name,
+
+          price: product.price,
+
+          image: product.images?.[0] || "/placeholder.jpg",
+
+          category: product.category,
+        },
+      ];
+
+      setIsWishlisted(true);
+    }
+
+    // SAVE
+    localStorage.setItem("CAMX_WISHLIST", JSON.stringify(updatedWishlist));
+
+    // UPDATE OTHER COMPONENTS
+    window.dispatchEvent(new Event("storage"));
   };
 
   return (

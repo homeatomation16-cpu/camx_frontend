@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { RiPlayList2Fill } from "react-icons/ri";
 import { FiShoppingCart } from "react-icons/fi";
 import { X } from "lucide-react";
+import { FcLike } from "react-icons/fc";
 
 const UserData = dynamic(() => import("./userData"), { ssr: false });
 const ThemeToggle = dynamic(() => import("./ThemeToggle"), { ssr: false });
@@ -77,6 +78,10 @@ export default function Header() {
             <FiShoppingCart size={20} />
             {cartCount > 0 && <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">{cartCount}</span>}
           </Link>
+          <Link href="/wishlist" className="relative text-secondary w-11 h-11 flex items-center justify-center rounded-2xl bg-white/70 dark:bg-white/5 backdrop-blur-xl border border-border shadow-lg">
+            <FcLike size={20} />
+          </Link>
+
           <div className="hidden lg:flex items-center">
             <ThemeToggle />
           </div>
