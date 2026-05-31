@@ -41,7 +41,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <main className="h-full bg-white dark:bg-background text-neutral-900 dark:text-foreground transition-colors duration-300">
+    <main className="h-full bg-neutral-50 dark:bg-background text-neutral-900 dark:text-foreground transition-colors duration-300">
       {/* 1. HERO COMPONENT */}
       <div className="pt-10">
         <Hero />

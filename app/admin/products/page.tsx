@@ -1,261 +1,688 @@
+/* eslint-disable react-hooks/set-state-in-effect */
+
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "axios";
 import Image from "next/image";
-import Link from "next/link";
-import toast from "react-hot-toast";
-import {
-  Package,
-  Search,
-  Plus,
-  Trash2,
-  Edit,
-  RefreshCw,
-  Layers,
-  CircleDollarSign,
-} from "lucide-react";
 
-const API = process.env.NEXT_PUBLIC_API_BASE;
+import mammoth from "mammoth";
+
+import { useEffect, useState } from "react";
+
+import axios from "axios";
 
 type Product = {
-  _id: string;
-  productId: string; // Backend එකට අවශ්‍ය productId එක මෙතැනට අර්ථ දක්වන ලදී
+  _id?: string;
+
+  productId: string;
+
   name: string;
+
+  description: string;
+
   price: number;
-  labelPrice?: number;
+
+  labelPrice: number;
+
   images: string[];
+
   category: string;
-  brand?: string;
-  model?: string;
-  stock?: number;
+
+  brand: string;
+
+  stock: number;
+
+  isAvailable: boolean;
+
+  specifications?: {
+    featureData?: string;
+  };
 };
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // 1. Fetch data from backend inside layout passes safely
-  useEffect(() => {
-    const fetchProductsOnMount = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(`${API}/api/products`);
-        setProducts(
-          Array.isArray(response.data) ? response.data.reverse() : [],
-        );
-      } catch (error) {
-        console.error("Error fetching products:", error);
-        toast.error("Failed to load system products inventory.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-    fetchProductsOnMount();
-  }, []);
+  // =========================
+  // FETCH PRODUCTS
+  // =========================
 
-  const handleManualRefresh = async () => {
+  async function fetchProducts() {
     try {
       setLoading(true);
-      const response = await axios.get(`${API}/api/products`);
-      setProducts(Array.isArray(response.data) ? response.data.reverse() : []);
-      toast.success("Inventory log synchronization complete.");
+
+      const token = localStorage.getItem("CAMX_TOKEN");
+
+      const res = await axios.get("http://localhost:5000/api/products", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setProducts(res.data);
     } catch (error) {
-      console.error("Error manual sync product list:", error);
-      toast.error("Failed to sync system products inventory.");
+      console.log(error);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  // 2. Remove an explicit item asset completely from store database repository
-  const handleDeleteProduct = async (productId: string) => {
-    if (
-      !window.confirm(
-        "Are you absolutely sure you want to delete this product asset from the database?",
-      )
-    ) {
-      return;
-    }
+  // =========================
+  // LOAD PRODUCTS
+  // =========================
 
-    setDeletingId(productId);
+  useEffect(() => {
+    void fetchProducts();
+  }, []);
+
+  // =========================
+  // HANDLE INPUT CHANGE
+  // =========================
+
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) {
+    if (!editingProduct) return;
+
+    const { name, value } = e.target;
+
+    setEditingProduct({
+      ...editingProduct,
+
+      [name]:
+        name === "price" || name === "labelPrice" || name === "stock"
+          ? Number(value)
+          : value,
+    });
+  }
+
+  // =========================
+  // DOCX SPEC IMPORT
+  // =========================
+
+  const handleDocxUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!editingProduct) return;
+
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
     try {
-      const token = localStorage.getItem("CAMX_TOKEN");
-      // FIXED: _id වෙනුවට Controller එක බලාපොරොත්තු වන productId එක යවන ලදී
-      await axios.delete(`${API}/api/products/${productId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const arrayBuffer = await file.arrayBuffer();
+
+      const result = await mammoth.extractRawText({
+        arrayBuffer,
       });
 
-      toast.success("Product asset removed successfully");
-      setProducts((prev) => prev.filter((p) => p.productId !== productId));
+      const text = result.value;
+
+      const lines = text
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      const extractedSpecs = lines.map((line) => {
+        const parts = line.split(":");
+
+        return {
+          title: parts[0]?.trim() || "",
+
+          value: parts.slice(1).join(":").trim() || "",
+
+          image: "",
+        };
+      });
+
+      const validSpecs = extractedSpecs.filter(
+        (spec) => spec.title && spec.value,
+      );
+
+      setEditingProduct({
+        ...editingProduct,
+
+        specifications: {
+          featureData: JSON.stringify(validSpecs),
+        },
+      });
+
+      alert("DOCX specifications imported successfully");
     } catch (error) {
-      console.error("Product deletion error:", error);
-      toast.error("Failed to remove product asset from repository.");
-    } finally {
-      setDeletingId(null);
+      console.log(error);
+
+      alert("Failed to import DOCX file");
     }
   };
 
-  // 3. Filter criteria node match checking logic
-  const filteredProducts = products.filter((product) => {
-    const nameMatch = product.name.toLowerCase().includes(search.toLowerCase());
-    const categoryMatch = product.category
-      .toLowerCase()
-      .includes(search.toLowerCase());
-    const brandMatch =
-      product.brand?.toLowerCase().includes(search.toLowerCase()) || false;
-    return nameMatch || categoryMatch || brandMatch;
-  });
+  // =========================
+  // UPDATE PRODUCT
+  // =========================
+
+  async function handleUpdate() {
+    if (!editingProduct) return;
+
+    try {
+      const token = localStorage.getItem("CAMX_TOKEN");
+
+      await axios.put(
+        `http://localhost:5000/api/products/${editingProduct.productId}`,
+        editingProduct,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      alert("Product updated successfully");
+
+      setEditingProduct(null);
+
+      fetchProducts();
+    } catch (error) {
+      console.log(error);
+
+      alert("Failed to update product");
+    }
+  }
+
+  // =========================
+  // DELETE PRODUCT
+  // =========================
+
+  async function handleDelete(productId: string) {
+    const confirmDelete = confirm("Delete this product?");
+
+    if (!confirmDelete) return;
+
+    try {
+      const token = localStorage.getItem("CAMX_TOKEN");
+
+      await axios.delete(`http://localhost:5000/api/products/${productId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      fetchProducts();
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
   return (
-    <div className="p-6 sm:p-8 md:p-12 max-w-7xl mx-auto w-full transition-colors duration-300">
-      {/* HEADER SECTION */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-neutral-900 dark:text-white">
-            Inventory <span className="text-secondary">Products</span>
-          </h1>
-          <p className="text-sm text-neutral-500 dark:text-gray-400 mt-2">
-            Manage your store repository, tracking assets, update pricing
-            stocks, and remove hardware models.
-          </p>
-        </div>
+    <div
+      className="
+        min-h-screen
+        bg-background
+        text-foreground
+        p-6
+      "
+    >
+      {/* HEADER */}
+      <div className="mb-8">
+        <h1
+          className="
+            text-4xl
+            font-black
+          "
+        >
+          Admin Products
+        </h1>
 
-        <div className="flex items-center gap-3 shrink-0 self-start sm:self-center">
-          <button
-            onClick={handleManualRefresh}
-            className="inline-flex items-center gap-2 h-11 px-4 text-sm font-bold border border-border bg-white dark:bg-card rounded-xl hover:bg-neutral-50 dark:hover:bg-background transition cursor-pointer text-neutral-800 dark:text-white"
-          >
-            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-            <span>Sync</span>
-          </button>
-
-          <Link
-            href="/admin/productAdd"
-            className="inline-flex items-center gap-2 h-11 px-4 text-sm font-bold bg-secondary text-white rounded-xl hover:bg-opacity-90 transition shadow-md shadow-secondary/10"
-          >
-            <Plus size={16} />
-            <span>Add Product</span>
-          </Link>
-        </div>
+        <p
+          className="
+            mt-2
+            text-muted-foreground
+          "
+        >
+          Manage and update products
+        </p>
       </div>
 
-      {/* FILTER SEARCH INPUT BAR */}
-      <div className="relative max-w-md mb-8">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 dark:text-gray-500 pointer-events-none" />
-        <input
-          type="text"
-          placeholder="Search by product name, category, or brand..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full h-11 pl-10 pr-4 rounded-xl bg-white dark:bg-card border border-neutral-200 dark:border-border text-neutral-900 dark:text-white text-sm placeholder-neutral-400 dark:placeholder-gray-500 outline-none focus:border-secondary transition"
-        />
-      </div>
-
-      {/* WORKSPACE LAYOUT RENDER STATEMENTS */}
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 animate-pulse">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-72 bg-neutral-100 dark:bg-card border border-neutral-200 dark:border-border rounded-3xl"
-            />
-          ))}
-        </div>
-      ) : filteredProducts.length === 0 ? (
-        <div className="text-center py-20 bg-white dark:bg-card border border-border rounded-3xl p-8">
-          <Package size={48} className="text-neutral-400 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-neutral-900 dark:text-white">
-            No products found
-          </h2>
-          <p className="text-sm text-neutral-500 dark:text-gray-400 mt-1">
-            There are no matching hardware items registered inside the local
-            repository layout filters.
-          </p>
-        </div>
-      ) : (
-        /* CORE INVENTORY LIST ASSET PRODUCT GRID */
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
-            <div
-              key={product._id}
-              className="bg-white dark:bg-card border border-neutral-200 dark:border-border rounded-3xl overflow-hidden shadow-sm flex flex-col justify-between group hover:border-secondary transition duration-300"
+      {/* EDIT MODAL */}
+      {editingProduct && (
+        <div
+          className="
+            fixed
+            inset-0
+            z-50
+            bg-black/60
+            flex
+            items-center
+            justify-center
+            p-4
+          "
+        >
+          <div
+            className="
+              w-full
+              max-w-3xl
+              bg-card
+              border
+              border-border
+              rounded-3xl
+              p-6
+              max-h-[90vh]
+              overflow-y-auto
+            "
+          >
+            <h2
+              className="
+                text-2xl
+                font-black
+                mb-6
+              "
             >
-              {/* ASSET PRODUCT GRAPH IMAGE FRAME */}
-              <div className="relative aspect-4/3 bg-neutral-50 dark:bg-neutral-950 p-4 flex items-center justify-center border-b border-neutral-100 dark:border-border/40 overflow-hidden">
-                <Image
-                  src={product.images?.[0] || "/placeholder.jpg"}
-                  alt={product.name}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 25vw"
-                  className="object-contain p-4 group-hover:scale-105 transition duration-300"
-                />
+              Update Product
+            </h2>
 
-                {product.stock !== undefined && (
-                  <span
-                    className={`absolute bottom-3 left-3 px-2 py-0.5 rounded-md text-[10px] font-black border ${product.stock > 0 ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"}`}
-                  >
-                    {product.stock > 0
-                      ? `${product.stock} In Stock`
-                      : "Out of Stock"}
-                  </span>
-                )}
+            <div
+              className="
+                grid
+                grid-cols-1
+                md:grid-cols-2
+                gap-5
+              "
+            >
+              {/* NAME */}
+              <input
+                type="text"
+                name="name"
+                value={editingProduct.name}
+                onChange={handleChange}
+                placeholder="Product Name"
+                className="
+                  h-12
+                  px-4
+                  rounded-xl
+                  border
+                  border-border
+                  bg-background
+                  outline-none
+                "
+              />
+
+              {/* CATEGORY */}
+              <input
+                type="text"
+                name="category"
+                value={editingProduct.category}
+                onChange={handleChange}
+                placeholder="Category"
+                className="
+                  h-12
+                  px-4
+                  rounded-xl
+                  border
+                  border-border
+                  bg-background
+                  outline-none
+                "
+              />
+
+              {/* BRAND */}
+              <input
+                type="text"
+                name="brand"
+                value={editingProduct.brand}
+                onChange={handleChange}
+                placeholder="Brand"
+                className="
+                  h-12
+                  px-4
+                  rounded-xl
+                  border
+                  border-border
+                  bg-background
+                  outline-none
+                "
+              />
+
+              {/* PRICE */}
+              <input
+                type="number"
+                name="price"
+                value={editingProduct.price}
+                onChange={handleChange}
+                placeholder="Price"
+                className="
+                  h-12
+                  px-4
+                  rounded-xl
+                  border
+                  border-border
+                  bg-background
+                  outline-none
+                "
+              />
+
+              {/* LABEL PRICE */}
+              <input
+                type="number"
+                name="labelPrice"
+                value={editingProduct.labelPrice}
+                onChange={handleChange}
+                placeholder="Label Price"
+                className="
+                  h-12
+                  px-4
+                  rounded-xl
+                  border
+                  border-border
+                  bg-background
+                  outline-none
+                "
+              />
+
+              {/* STOCK */}
+              <input
+                type="number"
+                name="stock"
+                value={editingProduct.stock}
+                onChange={handleChange}
+                placeholder="Stock"
+                className="
+                  h-12
+                  px-4
+                  rounded-xl
+                  border
+                  border-border
+                  bg-background
+                  outline-none
+                "
+              />
+
+              {/* IMAGE */}
+              <input
+                type="text"
+                value={editingProduct.images[0]}
+                onChange={(e) =>
+                  setEditingProduct({
+                    ...editingProduct,
+
+                    images: [e.target.value],
+                  })
+                }
+                placeholder="Image URL"
+                className="
+                  md:col-span-2
+                  h-12
+                  px-4
+                  rounded-xl
+                  border
+                  border-border
+                  bg-background
+                  outline-none
+                "
+              />
+
+              {/* DESCRIPTION */}
+              <textarea
+                name="description"
+                value={editingProduct.description}
+                onChange={handleChange}
+                rows={5}
+                placeholder="Description"
+                className="
+                  md:col-span-2
+                  p-4
+                  rounded-2xl
+                  border
+                  border-border
+                  bg-background
+                  outline-none
+                "
+              />
+
+              {/* DOCX SPECIFICATIONS */}
+              <div className="md:col-span-2">
+                <label
+                  className="
+                    block
+                    text-xs
+                    font-bold
+                    uppercase
+                    tracking-wider
+                    text-neutral-500
+                    dark:text-gray-400
+                    mb-2
+                  "
+                >
+                  Upload DOCX Specification Sheet
+                </label>
+
+                <input
+                  type="file"
+                  accept=".docx"
+                  onChange={handleDocxUpload}
+                  className="
+                    block
+                    w-full
+                    text-sm
+                    text-neutral-500
+                    file:mr-4
+                    file:py-2.5
+                    file:px-4
+                    file:rounded-xl
+                    file:border-0
+                    file:text-sm
+                    file:font-bold
+                    file:bg-neutral-100
+                    file:text-neutral-700
+                    cursor-pointer
+                  "
+                />
               </div>
 
-              {/* SPECIFICATION CARD CONTENT DETAILS SLOT */}
-              <div className="p-5 flex-1 flex flex-col justify-between gap-4">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                    <span className="flex items-center gap-1">
-                      <Layers size={10} /> {product.category}
-                    </span>
-                    {product.brand && <span>• {product.brand}</span>}
-                  </div>
+              {/* SPECIFICATIONS PREVIEW */}
+              {editingProduct?.specifications?.featureData && (
+                <div
+                  className="
+                    md:col-span-2
+                    mt-4
+                    space-y-3
+                  "
+                >
+                  {JSON.parse(editingProduct.specifications.featureData).map(
+                    (
+                      spec: {
+                        title: string;
+                        value: string;
+                      },
+                      index: number,
+                    ) => (
+                      <div
+                        key={index}
+                        className="
+                          p-4
+                          rounded-2xl
+                          border
+                          border-border
+                          bg-background
+                        "
+                      >
+                        <h4
+                          className="
+                            font-bold
+                            text-lg
+                          "
+                        >
+                          {spec.title}
+                        </h4>
 
-                  <h3 className="font-bold text-neutral-900 dark:text-white text-sm line-clamp-2 leading-relaxed">
-                    {product.name}
-                  </h3>
-
-                  {product.model && (
-                    <p className="text-[11px] font-medium text-neutral-400 dark:text-gray-500 truncate">
-                      Mod: {product.model}
-                    </p>
+                        <p
+                          className="
+                            mt-1
+                            text-sm
+                            text-muted-foreground
+                          "
+                        >
+                          {spec.value}
+                        </p>
+                      </div>
+                    ),
                   )}
                 </div>
+              )}
+            </div>
 
-                {/* BOTTOM VALUATION & ACTION ROUTER LAYOUTS */}
-                <div className="pt-3 border-t border-neutral-100 dark:border-border/40 flex items-center justify-between mt-1">
-                  <div className="flex flex-col">
-                    <span className="text-xs font-semibold text-neutral-400 flex items-center gap-0.5">
-                      <CircleDollarSign size={10} /> Net Price
-                    </span>
-                    <span className="text-base font-black text-secondary">
-                      LKR {product.price.toLocaleString()}
-                    </span>
-                  </div>
+            {/* ACTIONS */}
+            <div className="flex gap-4 mt-6">
+              <button
+                onClick={handleUpdate}
+                className="
+                  h-12
+                  px-6
+                  rounded-xl
+                  bg-secondary
+                  text-white
+                  font-bold
+                "
+              >
+                Update Product
+              </button>
 
-                  <div className="flex items-center gap-1.5">
-                    {/* FIXED: Link එකට ද දැන් productId එක සාර්ථකව සම්බන්ධ කර ඇත */}
-                    <Link
-                      href={`/admin/products/edit/${product.productId}`}
-                      className="p-2 border border-border hover:border-secondary hover:text-secondary text-neutral-400 dark:text-gray-500 rounded-xl transition cursor-pointer"
-                      title="Edit Product Details"
-                    >
-                      <Edit size={14} />
-                    </Link>
+              <button
+                onClick={() => setEditingProduct(null)}
+                className="
+                  h-12
+                  px-6
+                  rounded-xl
+                  border
+                  border-border
+                "
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-                    <button
-                      disabled={deletingId === product.productId}
-                      onClick={() => handleDeleteProduct(product.productId)}
-                      className="p-2 border border-border hover:border-red-500 hover:text-red-500 text-neutral-400 dark:text-gray-500 rounded-xl transition cursor-pointer disabled:opacity-40"
-                      title="Delete Product from Store"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
+      {/* PRODUCTS */}
+      {loading ? (
+        <div className="py-20 text-center">Loading...</div>
+      ) : (
+        <div
+          className="
+            grid
+            grid-cols-1
+            md:grid-cols-2
+            xl:grid-cols-3
+            gap-6
+          "
+        >
+          {products.map((product) => (
+            <div
+              key={product.productId}
+              className="
+                overflow-hidden
+                rounded-3xl
+                border
+                border-border
+                bg-card
+              "
+            >
+              {/* IMAGE */}
+              <div
+                className="
+                  relative
+                  w-full
+                  h-60
+                "
+              >
+                <Image
+                  src={product.images[0]}
+                  alt={product.name}
+                  fill
+                  unoptimized
+                  loading="lazy"
+                  sizes="
+                    (max-width: 768px) 100vw,
+                    (max-width: 1200px) 50vw,
+                    33vw
+                  "
+                  className="
+                    object-cover
+                  "
+                />
+              </div>
+
+              {/* CONTENT */}
+              <div className="p-5">
+                <h2
+                  className="
+                    text-xl
+                    font-black
+                  "
+                >
+                  {product.name}
+                </h2>
+
+                <p
+                  className="
+                    mt-2
+                    text-sm
+                    text-muted-foreground
+                  "
+                >
+                  {product.category}
+                </p>
+
+                <div className="mt-4">
+                  <p
+                    className="
+                      text-2xl
+                      font-black
+                    "
+                  >
+                    Rs.
+                    {product.price.toLocaleString()}
+                  </p>
+
+                  <p
+                    className="
+                      text-sm
+                      text-muted-foreground
+                    "
+                  >
+                    Stock:
+                    {product.stock}
+                  </p>
+                </div>
+
+                {/* ACTIONS */}
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => setEditingProduct(product)}
+                    className="
+                      flex-1
+                      h-11
+                      rounded-xl
+                      bg-secondary
+                      text-white
+                      font-bold
+                    "
+                  >
+                    Update
+                  </button>
+
+                  <button
+                    onClick={() => handleDelete(product.productId)}
+                    className="
+                      flex-1
+                      h-11
+                      rounded-xl
+                      border
+                      border-red-500
+                      text-red-500
+                      font-bold
+                    "
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
             </div>

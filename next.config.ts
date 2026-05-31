@@ -2,13 +2,19 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    qualities: [74, 75, 100],
+    qualities: [74, 75, 80, 100],
 
     remotePatterns: [
-    {
+      {
         protocol: "https",
         hostname: "static.cdnlogo.com",
       },
+
+      {
+        protocol: "https",
+        hostname: "www.ezviz.com",
+      },
+
       {
         protocol: "https",
         hostname: "example.com",
@@ -26,19 +32,21 @@ const nextConfig: NextConfig = {
 
       {
         protocol: "https",
-        hostname: "lh3.googleusercontent.com",
-        port: "",
+        hostname:
+          "lh3.googleusercontent.com",
         pathname: "/**",
       },
 
       {
         protocol: "https",
-        hostname: "images.unsplash.com",
+        hostname:
+          "images.unsplash.com",
       },
 
       {
         protocol: "https",
-        hostname: "cdn.pixabay.com",
+        hostname:
+          "cdn.pixabay.com",
       },
     ],
   },

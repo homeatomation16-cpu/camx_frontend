@@ -168,7 +168,7 @@ function Section({
   services: Service[];
 }) {
   return (
-    <div className="mb-32">
+    <div className="mb-10">
       {/* HEADER */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}

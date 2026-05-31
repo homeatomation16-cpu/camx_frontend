@@ -50,12 +50,12 @@ export default function FeaturedProducts() {
   }, []);
 
   return (
-    <section className="py-20 md:py-24 px-4 sm:px-6 bg-white dark:bg-transparent transition-colors duration-300">
+    <section className="py-5 md:py-10 px-4 sm:px-6 bg-white dark:bg-transparent transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
         {/* HEADER */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5 mb-12">
+        <div className="flex flex-col items-center justify-between gap-5 mb-12">
           <div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-neutral-900 dark:text-white">
+            <h2 className="text-3xl lg:text-5xl text-center font-black tracking-tight text-neutral-900 dark:text-white">
               Featured Products
             </h2>
 
@@ -64,10 +64,15 @@ export default function FeaturedProducts() {
             </p>
           </div>
 
+          {/* LINE */}
+          <div className="mx-auto mt-5 h-px w-full bg-linear-to-r from-cyan-400 to-blue-500" />
+        </div>
+
+        <div className="flex items-center justify-between mb-4">
           <Link
             href="/products"
             aria-label="View all products"
-            className="inline-flex items-center font-semibold text-secondary hover:underline"
+            className="inline-flex right-0 font-semibold text-secondary hover:underline"
           >
             View All →
           </Link>
