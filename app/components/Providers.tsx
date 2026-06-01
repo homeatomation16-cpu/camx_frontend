@@ -37,7 +37,7 @@ const brands = [
 
 export default function Providers() {
   return (
-    <section className="relative overflow-hidden bg-background ">
+    <section className="relative overflow-hidden bg-background py-24">
       {/* BG EFFECT */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute left-0 top-0 h-80 w-80 rounded-full bg-secondary/10 blur-3xl" />
