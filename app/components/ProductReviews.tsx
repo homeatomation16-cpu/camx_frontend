@@ -127,13 +127,16 @@ function ReviewForm({ onSubmit }: { onSubmit: (review: Omit<Review, "_id" | "hel
   );
 }
 
-function ReviewCard({ review }: { review: Review }) {
+// මෙතනට onVoteHelpful prop එක එකතු කළා
+function ReviewCard({ review, onVoteHelpful }: { review: Review; onVoteHelpful: (id: string) => void }) {
   const [liked, setLiked] = useState(false);
-  const [helpfulCount, setHelpfulCount] = useState(review.helpful);
 
   const toggleHelpful = () => {
-    setLiked((prev) => !prev);
-    setHelpfulCount((prev) => (liked ? prev - 1 : prev + 1));
+    // එක පාරක් click කළාට පස්සේ ආයේ click කරන්න බැරි වෙන්න
+    if (liked) return;
+    setLiked(true);
+    // ProductOverview එකේ තියෙන function එක run කරනවා (මේකෙන් තමයි DB එකට යන්නේ)
+    onVoteHelpful(review._id);
   };
 
   const initials = review.author
@@ -175,16 +178,18 @@ function ReviewCard({ review }: { review: Review }) {
       <div className="flex items-center gap-2 border-t pt-3 text-xs text-neutral-400">
         <span>Helpful?</span>
 
-        <button onClick={toggleHelpful} className={`flex items-center gap-1.5 rounded-full border px-3 py-1 transition ${liked ? "border-secondary bg-secondary/5 text-secondary" : "hover:border-neutral-300"}`}>
+        <button onClick={toggleHelpful} disabled={liked} className={`flex items-center gap-1.5 rounded-full border px-3 py-1 transition ${liked ? "border-secondary bg-secondary/5 text-secondary cursor-default" : "hover:border-neutral-300 cursor-pointer"}`}>
           {liked ? <FaThumbsUp size={11} /> : <FaRegThumbsUp size={11} />}
-          <span>{helpfulCount}</span>
+          {/* මෙතන review.helpful පාවිච්චි කරන්නේ DB එකෙන්/Parent එකෙන් එන අගයයි */}
+          <span>{review.helpful || 0}</span>
         </button>
       </div>
     </motion.div>
   );
 }
 
-export default function ProductReviews({ reviews, avgRating, onAddReview }: { reviews: Review[]; avgRating: number; onAddReview: (r: Omit<Review, "_id" | "helpful">) => void }) {
+// ප්‍රධාන Component එකට onVoteHelpful prop එක එකතු කළා
+export default function ProductReviews({ reviews, avgRating, onAddReview, onVoteHelpful }: { reviews: Review[]; avgRating: number; onAddReview: (r: Omit<Review, "_id" | "helpful">) => void; onVoteHelpful: (id: string) => void }) {
   const [filter, setFilter] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
 
@@ -241,7 +246,7 @@ export default function ProductReviews({ reviews, avgRating, onAddReview }: { re
 
         <div className="space-y-4 lg:col-span-2">
           {filtered.map((review) => (
-            <ReviewCard key={review._id} review={review} />
+            <ReviewCard key={review._id} review={review} onVoteHelpful={onVoteHelpful} />
           ))}
         </div>
       </div>
