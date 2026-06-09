@@ -192,7 +192,7 @@ export default function ProductAddPage() {
       // SAVE PRODUCT
       // =========================
 
-      await axios.post(`${API}/products`, productData, {
+      await axios.post(`${API}/api/products`, productData, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("CAMX_TOKEN")}`,
         },
