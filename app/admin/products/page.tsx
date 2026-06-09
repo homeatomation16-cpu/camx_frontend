@@ -4,32 +4,21 @@
 
 import Image from "next/image";
 import mammoth from "mammoth";
-import { useEffect, useState } from "react";
+import { useEffect, useState, ChangeEvent } from "react";
 import axios from "axios";
 
 type Product = {
   _id?: string;
-
   productId: string;
-
   name: string;
-
   description: string;
-
   price: number;
-
   labelPrice: number;
-
   images: string[];
-
   category: string;
-
   brand: string;
-
   stock: number;
-
   isAvailable: boolean;
-
   specifications?: {
     featureData?: string;
   };
@@ -37,10 +26,15 @@ type Product = {
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
-
   const [loading, setLoading] = useState(true);
-
+  const [isUpdating, setIsUpdating] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  // =========================
+  // IMAGE STATES
+  // =========================
+  const [files, setFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   // =========================
   // FETCH PRODUCTS
@@ -49,15 +43,12 @@ export default function AdminProductsPage() {
   async function fetchProducts() {
     try {
       setLoading(true);
-
       const token = localStorage.getItem("CAMX_TOKEN");
-
       const res = await axios.get("http://localhost:5000/api/products", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-
       setProducts(res.data);
     } catch (error) {
       console.log(error);
@@ -75,6 +66,17 @@ export default function AdminProductsPage() {
   }, []);
 
   // =========================
+  // HANDLE EDIT CLICK
+  // =========================
+
+  function handleEditClick(product: Product) {
+    setEditingProduct(product);
+    // පරණ පින්තූර preview එකට දමන්න
+    setImagePreviews(product.images || []);
+    setFiles([]);
+  }
+
+  // =========================
   // HANDLE INPUT CHANGE
   // =========================
 
@@ -85,10 +87,23 @@ export default function AdminProductsPage() {
 
     setEditingProduct({
       ...editingProduct,
-
       [name]: name === "price" || name === "labelPrice" || name === "stock" ? Number(value) : value,
     });
   }
+
+  // =========================
+  // FILE CHANGE + PREVIEW
+  // =========================
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selectedFiles = Array.from(e.target.files);
+      setFiles(selectedFiles);
+
+      const previews = selectedFiles.map((file) => URL.createObjectURL(file));
+      setImagePreviews(previews);
+    }
+  };
 
   // =========================
   // DOCX TEMPLATE IMPORT
@@ -98,7 +113,6 @@ export default function AdminProductsPage() {
     if (!editingProduct) return;
 
     const file = e.target.files?.[0];
-
     if (!file) return;
 
     try {
@@ -113,7 +127,6 @@ export default function AdminProductsPage() {
 
       setEditingProduct({
         ...editingProduct,
-
         specifications: {
           featureData: html,
         },
@@ -122,7 +135,6 @@ export default function AdminProductsPage() {
       alert("DOCX template imported successfully");
     } catch (error) {
       console.log(error);
-
       alert("Failed to import DOCX file");
     }
   };
@@ -135,23 +147,48 @@ export default function AdminProductsPage() {
     if (!editingProduct) return;
 
     try {
+      setIsUpdating(true);
       const token = localStorage.getItem("CAMX_TOKEN");
+      let finalImages = editingProduct.images;
 
-      await axios.put(`http://localhost:5000/api/products/${editingProduct.productId}`, editingProduct, {
+      // අලුත් පින්තූර තෝරා ඇත්නම් පමණක් upload කරන්න
+      if (files.length > 0) {
+        const uploadedImages: string[] = [];
+        const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+        const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "";
+
+        for (const file of files) {
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("upload_preset", uploadPreset);
+
+          const uploadResponse = await axios.post(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, formData);
+          uploadedImages.push(uploadResponse.data.secure_url);
+        }
+        finalImages = uploadedImages;
+      }
+
+      const updatedProductData = {
+        ...editingProduct,
+        images: finalImages,
+      };
+
+      await axios.put(`http://localhost:5000/api/products/${editingProduct.productId}`, updatedProductData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
       alert("Product updated successfully");
-
       setEditingProduct(null);
-
+      setFiles([]);
+      setImagePreviews([]);
       fetchProducts();
     } catch (error) {
       console.log(error);
-
       alert("Failed to update product");
+    } finally {
+      setIsUpdating(false);
     }
   }
 
@@ -161,18 +198,15 @@ export default function AdminProductsPage() {
 
   async function handleDelete(productId: string) {
     const confirmDelete = confirm("Delete this product?");
-
     if (!confirmDelete) return;
 
     try {
       const token = localStorage.getItem("CAMX_TOKEN");
-
       await axios.delete(`http://localhost:5000/api/products/${productId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-
       fetchProducts();
     } catch (error) {
       console.log(error);
@@ -362,30 +396,6 @@ export default function AdminProductsPage() {
                 "
               />
 
-              {/* IMAGE */}
-              <input
-                type="text"
-                value={editingProduct.images[0]}
-                onChange={(e) =>
-                  setEditingProduct({
-                    ...editingProduct,
-
-                    images: [e.target.value],
-                  })
-                }
-                placeholder="Image URL"
-                className="
-                  md:col-span-2
-                  h-12
-                  px-4
-                  rounded-xl
-                  border
-                  border-border
-                  bg-background
-                  outline-none
-                "
-              />
-
               {/* DESCRIPTION */}
               <textarea
                 name="description"
@@ -404,8 +414,76 @@ export default function AdminProductsPage() {
                 "
               />
 
+              {/* IMAGES UPLOAD & PREVIEW */}
+              <div className="md:col-span-2 mt-2">
+                <label
+                  className="
+                    block
+                    text-xs
+                    font-bold
+                    uppercase
+                    tracking-wider
+                    text-neutral-500
+                    dark:text-gray-400
+                    mb-2
+                  "
+                >
+                  Update Product Images
+                </label>
+
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="
+                    block
+                    w-full
+                    text-sm
+                    text-neutral-500
+                    file:mr-4
+                    file:py-2.5
+                    file:px-4
+                    file:rounded-xl
+                    file:border-0
+                    file:text-sm
+                    file:font-bold
+                    file:bg-neutral-100
+                    file:text-neutral-700
+                    cursor-pointer
+                  "
+                />
+
+                {imagePreviews.length > 0 && (
+                  <div
+                    className="
+                      grid
+                      grid-cols-4
+                      gap-4
+                      mt-4
+                    "
+                  >
+                    {imagePreviews.map((url, i) => (
+                      <div
+                        key={i}
+                        className="
+                          relative
+                          aspect-square
+                          rounded-xl
+                          overflow-hidden
+                          border
+                          border-border
+                        "
+                      >
+                        <Image src={url} alt="preview" fill unoptimized loading="lazy" sizes="200px" className="object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* DOCX IMPORT */}
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 mt-4">
                 <label
                   className="
                     block
@@ -454,6 +532,7 @@ export default function AdminProductsPage() {
                     border
                     border-border
                     bg-white
+                    dark:bg-neutral-900
                     p-6
                     overflow-x-auto
                   "
@@ -469,6 +548,7 @@ export default function AdminProductsPage() {
                       prose-th:border
                       prose-td:p-2
                       prose-th:p-2
+                      dark:prose-invert
                     "
                     dangerouslySetInnerHTML={{
                       __html: editingProduct.specifications?.featureData || "",
@@ -482,6 +562,7 @@ export default function AdminProductsPage() {
             <div className="flex gap-4 mt-6">
               <button
                 onClick={handleUpdate}
+                disabled={isUpdating}
                 className="
                   h-12
                   px-6
@@ -489,19 +570,27 @@ export default function AdminProductsPage() {
                   bg-secondary
                   text-white
                   font-bold
+                  disabled:opacity-50
+                  disabled:cursor-not-allowed
                 "
               >
-                Update Product
+                {isUpdating ? "Updating..." : "Update Product"}
               </button>
 
               <button
-                onClick={() => setEditingProduct(null)}
+                onClick={() => {
+                  setEditingProduct(null);
+                  setFiles([]);
+                  setImagePreviews([]);
+                }}
+                disabled={isUpdating}
                 className="
                   h-12
                   px-6
                   rounded-xl
                   border
                   border-border
+                  disabled:opacity-50
                 "
               >
                 Cancel
@@ -544,7 +633,7 @@ export default function AdminProductsPage() {
                 "
               >
                 <Image
-                  src={product.images[0]}
+                  src={product.images && product.images.length > 0 ? product.images[0] : "/placeholder.png"}
                   alt={product.name}
                   fill
                   unoptimized
@@ -598,15 +687,14 @@ export default function AdminProductsPage() {
                       text-muted-foreground
                     "
                   >
-                    Stock:
-                    {product.stock}
+                    Stock: {product.stock}
                   </p>
                 </div>
 
                 {/* ACTIONS */}
                 <div className="flex gap-3 mt-6">
                   <button
-                    onClick={() => setEditingProduct(product)}
+                    onClick={() => handleEditClick(product)}
                     className="
                       flex-1
                       h-11
