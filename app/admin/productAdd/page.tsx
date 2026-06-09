@@ -1,22 +1,11 @@
 "use client";
 
 import axios from "axios";
-
 import Image from "next/image";
-
 import mammoth from "mammoth";
-
 import { ChangeEvent, FormEvent, useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
-
-type Specification = {
-  title: string;
-
-  value: string;
-
-  image: string;
-};
 
 export default function ProductAddPage() {
   // =========================
@@ -24,38 +13,25 @@ export default function ProductAddPage() {
   // =========================
 
   const [name, setName] = useState("");
-
   const [altName, setAltName] = useState("");
-
   const [description, setDescription] = useState("");
-
   const [price, setPrice] = useState<number>(0);
-
   const [labelPrice, setLabelPrice] = useState<number>(0);
-
   const [files, setFiles] = useState<File[]>([]);
-
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-
   const [category, setCategory] = useState("");
-
   const [brand, setBrand] = useState("");
-
   const [model, setModel] = useState("");
-
   const [stock, setStock] = useState<number>(0);
-
   const [isAvailable] = useState(true);
-
   const [loading, setLoading] = useState(false);
-
   const [message, setMessage] = useState("");
 
   // =========================
-  // SPECIFICATIONS STATE
+  // SPECIFICATIONS STATE (HTML)
   // =========================
-
-  const [specifications, setSpecifications] = useState<Specification[]>([]);
+  // දැන් අපි array එකක් වෙනුවට කෙලින්ම HTML string එකක් save කරගන්නවා
+  const [featureData, setFeatureData] = useState("");
 
   // =========================
   // FILE CHANGE + PREVIEW
@@ -64,62 +40,38 @@ export default function ProductAddPage() {
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const selectedFiles = Array.from(e.target.files);
-
       setFiles(selectedFiles);
-
       const previews = selectedFiles.map((file) => URL.createObjectURL(file));
-
       setImagePreviews(previews);
     }
   };
 
   // =========================
-  // DOCX IMPORT
+  // DOCX IMPORT (HTML CONVERSION)
   // =========================
 
   const handleDocxUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-
     if (!file) return;
 
     try {
       const arrayBuffer = await file.arrayBuffer();
 
-      const result = await mammoth.extractRawText({
+      // extractRawText වෙනුවට convertToHtml භාවිතා කිරීම
+      const result = await mammoth.convertToHtml({
         arrayBuffer,
       });
 
-      const text = result.value;
+      const html = result.value;
 
-      const lines = text
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean);
-
-      const extractedSpecs = lines.map((line) => {
-        const parts = line.split(":");
-
-        return {
-          title: parts[0]?.trim() || "",
-
-          value: parts.slice(1).join(":").trim() || "",
-
-          image: "",
-        };
-      });
-
-      const validSpecs = extractedSpecs.filter((spec) => spec.title && spec.value);
-
-      if (validSpecs.length > 0) {
-        setSpecifications(validSpecs);
-
-        setMessage("✅ DOCX specifications imported successfully!");
+      if (html) {
+        setFeatureData(html);
+        setMessage("✅ DOCX template imported successfully!");
       } else {
-        setMessage("❌ No valid specifications found.");
+        setMessage("❌ No content found in the document.");
       }
     } catch (error) {
       console.error(error);
-
       setMessage("❌ Failed to parse DOCX file.");
     }
   };
@@ -130,30 +82,27 @@ export default function ProductAddPage() {
 
   const handleAddProduct = async (e: FormEvent) => {
     e.preventDefault();
-
     setLoading(true);
-
     setMessage("");
 
     try {
       const uploadedImages: string[] = [];
-
       const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 
       // =========================
       // UPLOAD PRODUCT IMAGES
       // =========================
 
-      for (const file of files) {
-        const formData = new FormData();
+      if (files.length > 0) {
+        for (const file of files) {
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "");
 
-        formData.append("file", file);
+          const uploadResponse = await axios.post(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, formData);
 
-        formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "");
-
-        const uploadResponse = await axios.post(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, formData);
-
-        uploadedImages.push(uploadResponse.data.secure_url);
+          uploadedImages.push(uploadResponse.data.secure_url);
+        }
       }
 
       // =========================
@@ -162,29 +111,18 @@ export default function ProductAddPage() {
 
       const productData = {
         name,
-
         altName: altName ? altName.split(",").map((item) => item.trim()) : [],
-
         description,
-
         price,
-
         labelPrice: labelPrice || price,
-
         images: uploadedImages,
-
         category,
-
         brand,
-
         model,
-
         stock,
-
         isAvailable,
-
         specifications: {
-          featureData: JSON.stringify(specifications),
+          featureData: featureData, // කෙලින්ම HTML එක යවනවා
         },
       };
 
@@ -201,33 +139,22 @@ export default function ProductAddPage() {
       setMessage("✅ Product added successfully!");
 
       // RESET FORM
-
       setName("");
-
       setAltName("");
-
       setDescription("");
-
       setPrice(0);
-
       setLabelPrice(0);
-
       setFiles([]);
-
       setImagePreviews([]);
-
       setCategory("");
-
       setBrand("");
-
       setModel("");
-
       setStock(0);
+      setFeatureData("");
 
-      setSpecifications([]);
+      // Clear file input manually if needed using ref (optional)
     } catch (error) {
       console.error("Product add failed:", error);
-
       setMessage("❌ Failed to add product.");
     } finally {
       setLoading(false);
@@ -308,7 +235,6 @@ export default function ProductAddPage() {
           >
             Product Name *
           </label>
-
           <input
             type="text"
             required
@@ -352,7 +278,6 @@ export default function ProductAddPage() {
           >
             Alternative Names
           </label>
-
           <input
             type="text"
             placeholder="CCTV, wifi camera"
@@ -395,7 +320,6 @@ export default function ProductAddPage() {
           >
             Product Description *
           </label>
-
           <textarea
             rows={5}
             required
@@ -440,7 +364,6 @@ export default function ProductAddPage() {
             >
               Selling Price *
             </label>
-
             <input
               type="number"
               required
@@ -475,7 +398,6 @@ export default function ProductAddPage() {
             >
               Label Price
             </label>
-
             <input
               type="number"
               value={labelPrice || ""}
@@ -512,7 +434,6 @@ export default function ProductAddPage() {
             >
               Category *
             </label>
-
             <input
               type="text"
               required
@@ -547,7 +468,6 @@ export default function ProductAddPage() {
             >
               Brand
             </label>
-
             <input
               type="text"
               value={brand}
@@ -584,7 +504,6 @@ export default function ProductAddPage() {
             >
               Model
             </label>
-
             <input
               type="text"
               value={model}
@@ -618,7 +537,6 @@ export default function ProductAddPage() {
             >
               Stock *
             </label>
-
             <input
               type="number"
               required
@@ -655,7 +573,6 @@ export default function ProductAddPage() {
           >
             Product Images *
           </label>
-
           <input
             type="file"
             multiple
@@ -693,11 +610,14 @@ export default function ProductAddPage() {
                 <div
                   key={i}
                   className="
-                      relative
-                      aspect-square
-                      rounded-xl
-                      overflow-hidden
-                    "
+                    relative
+                    aspect-square
+                    rounded-xl
+                    overflow-hidden
+                    border
+                    border-neutral-200
+                    dark:border-border
+                  "
                 >
                   <Image src={url} alt="preview" fill unoptimized loading="lazy" sizes="200px" className="object-cover" />
                 </div>
@@ -718,9 +638,8 @@ export default function ProductAddPage() {
                   dark:text-white
                 "
               >
-                Technical Specifications
+                Technical Specifications (Template)
               </h3>
-
               <p
                 className="
                   text-xs
@@ -729,7 +648,7 @@ export default function ProductAddPage() {
                   mt-1
                 "
               >
-                Upload DOCX specification sheet to auto-generate specs.
+                Upload DOCX specification sheet to preserve original tables and formatting.
               </p>
             </div>
           </div>
@@ -769,27 +688,10 @@ export default function ProductAddPage() {
                 file:cursor-pointer
               "
             />
-
-            <p
-              className="
-                mt-3
-                text-xs
-                text-neutral-500
-                dark:text-gray-400
-              "
-            >
-              Example:
-              <br />
-              Resolution: 4MP
-              <br />
-              Lens: 2.8mm
-              <br />
-              Night Vision: 30m IR
-            </p>
           </div>
 
-          {/* PREVIEW */}
-          {specifications.length > 0 && (
+          {/* TEMPLATE PREVIEW */}
+          {featureData && (
             <div className="mt-6 space-y-4">
               <h4
                 className="
@@ -801,44 +703,43 @@ export default function ProductAddPage() {
                   dark:text-gray-400
                 "
               >
-                Imported Specifications
+                Template Preview
               </h4>
 
-              {specifications.map((spec, index) => (
+              <div
+                className="
+                  p-6
+                  rounded-2xl
+                  bg-white
+                  dark:bg-neutral-900
+                  border
+                  border-neutral-200
+                  dark:border-border
+                  overflow-x-auto
+                "
+              >
+                {/* Tailwind Typography (prose) classes භාවිතා කර ඇත. 
+                  tables සහ lists නිවැරදිව දිස්වීමට මෙය උදව් වේ. 
+                */}
                 <div
-                  key={index}
                   className="
-                      p-4
-                      rounded-2xl
-                      bg-neutral-50
-                      dark:bg-background
-                      border
-                      border-neutral-200
-                      dark:border-border
-                    "
-                >
-                  <h5
-                    className="
-                        font-bold
-                        text-neutral-900
-                        dark:text-white
-                      "
-                  >
-                    {spec.title}
-                  </h5>
-
-                  <p
-                    className="
-                        mt-1
-                        text-sm
-                        text-neutral-600
-                        dark:text-gray-300
-                      "
-                  >
-                    {spec.value}
-                  </p>
-                </div>
-              ))}
+                    prose
+                    prose-sm
+                    max-w-none
+                    prose-table:w-full
+                    prose-table:border
+                    prose-table:border-collapse
+                    prose-td:border
+                    prose-th:border
+                    prose-td:p-3
+                    prose-th:p-3
+                    prose-th:bg-neutral-100
+                    dark:prose-invert
+                    dark:prose-th:bg-neutral-800
+                  "
+                  dangerouslySetInnerHTML={{ __html: featureData }}
+                />
+              </div>
             </div>
           )}
         </div>
