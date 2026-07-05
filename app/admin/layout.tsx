@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { usePathname, useRouter } from "next/navigation";
-
+import { TbCategoryPlus } from "react-icons/tb";
 import { LayoutDashboard, PackagePlus, Boxes, ShoppingCart, Users, Menu, X, LogOut, BoxSelectIcon } from "lucide-react";
 
 import ThemeToggle from "../components/ThemeToggle";
@@ -75,6 +75,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       name: "Products",
       href: "/admin/products",
       icon: <Boxes size={20} />,
+    },
+    {
+      name: "Add Categories",
+      href: "/admin/categories",
+      icon: <TbCategoryPlus size={20} />,
     },
 
     {

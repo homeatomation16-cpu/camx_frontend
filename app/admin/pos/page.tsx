@@ -13,6 +13,14 @@ const rawAPI = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
 const API = rawAPI.endsWith("/") ? rawAPI.slice(0, -1) : rawAPI;
 
 // ── Types ──────────────────────────────────────────────────────
+// productController.js's getAllProducts() does
+// .populate("category", "name slug") — so `category` on the wire is a
+// populated { _id, name, slug } object, not a raw string. Some older
+// records (or a fetch without populate) could still hand back the id
+// string alone, so we accept both here and normalize with
+// getCategoryName() everywhere we need to display or compare it.
+type PopulatedCategory = { _id: string; name: string; slug?: string };
+
 type Product = {
   _id: string;
   productId: string;
@@ -20,10 +28,19 @@ type Product = {
   price: number;
   stock: number;
   images: string[];
-  category: string;
+  category: string | PopulatedCategory | null;
 };
 
 type CartItem = Product & { cartQuantity: number };
+
+// Normalizes whatever shape `category` is into a display/compare-safe string.
+// This is what was missing before: comparing/deduping raw objects made
+// every "unique" category collapse to the same "[object Object]" key.
+function getCategoryName(category: Product["category"]): string {
+  if (!category) return "Uncategorized";
+  if (typeof category === "string") return category;
+  return category.name || "Uncategorized";
+}
 
 // ── Skeleton Card ──────────────────────────────────────────────
 function SkeletonCard() {
@@ -76,14 +93,17 @@ export default function AdminPOSPage() {
   }, []);
 
   // DERIVED
+  // Dedupe by the normalized category NAME, not the raw (possibly-object)
+  // category value — this is what actually fixes the duplicate-key warning.
   const categories = useMemo(() => {
-    return ["All", ...Array.from(new Set(products.map((p) => p.category)))];
+    return ["All", ...Array.from(new Set(products.map((p) => getCategoryName(p.category))))];
   }, [products]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const q = searchQuery.toLowerCase();
-      return (p.name.toLowerCase().includes(q) || p.productId.toLowerCase().includes(q)) && (selectedCategory === "All" || p.category === selectedCategory);
+      const categoryName = getCategoryName(p.category);
+      return (p.name.toLowerCase().includes(q) || p.productId.toLowerCase().includes(q)) && (selectedCategory === "All" || categoryName === selectedCategory);
     });
   }, [products, searchQuery, selectedCategory]);
 
@@ -248,7 +268,7 @@ export default function AdminPOSPage() {
 
                       <div className="flex flex-1 flex-col justify-between p-3">
                         <div>
-                          <p className="text-[9px] font-black uppercase tracking-wider text-neutral-400">{product.category}</p>
+                          <p className="text-[9px] font-black uppercase tracking-wider text-neutral-400">{getCategoryName(product.category)}</p>
                           <h3 className="mt-0.5 line-clamp-2 text-[13px] font-bold leading-snug text-neutral-800 dark:text-white">{product.name}</h3>
                         </div>
                         <div className="mt-2.5 flex items-center justify-between border-t border-neutral-100 pt-2 dark:border-neutral-800">
