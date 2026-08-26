@@ -3,9 +3,55 @@
 import axios from "axios";
 import Image from "next/image";
 import mammoth from "mammoth";
-import { ChangeEvent, FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useState, useEffect } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
+
+// =========================
+// CATEGORY TREE TYPES
+// =========================
+// This mirrors what GET /api/categories/tree returns from categoryController.js
+// (buildTree()): a nested tree, not a flat list.
+type CategoryNode = {
+  _id: string;
+  name: string;
+  slug: string;
+  level: number;
+  isActive: boolean;
+  children: CategoryNode[];
+};
+
+// Flattened option used to populate the <select>, keeping the tree's order
+// and depth so we can indent child categories under their parent.
+type CategoryOption = {
+  _id: string;
+  label: string; // indented display label, e.g. "— — Dome Cameras"
+  level: number;
+  isActive: boolean;
+};
+
+// Walk the tree depth-first and produce an ordered, indented option list.
+function flattenCategoryTree(nodes: CategoryNode[]): CategoryOption[] {
+  const options: CategoryOption[] = [];
+
+  const walk = (list: CategoryNode[]) => {
+    for (const node of list) {
+      const prefix = node.level > 0 ? "\u2014 ".repeat(node.level) : "";
+      options.push({
+        _id: node._id,
+        label: `${prefix}${node.name}`,
+        level: node.level,
+        isActive: node.isActive,
+      });
+      if (node.children && node.children.length > 0) {
+        walk(node.children);
+      }
+    }
+  };
+
+  walk(nodes);
+  return options;
+}
 
 export default function ProductAddPage() {
   // =========================
@@ -19,7 +65,15 @@ export default function ProductAddPage() {
   const [labelPrice, setLabelPrice] = useState<number>(0);
   const [files, setFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+
+  // Holds the selected leaf category's ObjectId (NOT its name — the API
+  // requires a valid Category _id so it can resolve the SKU prefix and
+  // populate category details on read).
   const [category, setCategory] = useState("");
+  const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState("");
+
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [stock, setStock] = useState<number>(0);
@@ -27,11 +81,38 @@ export default function ProductAddPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // =========================
-  // SPECIFICATIONS STATE (HTML)
-  // =========================
-  // දැන් අපි array එකක් වෙනුවට කෙලින්ම HTML string එකක් save කරගන්නවා
   const [featureData, setFeatureData] = useState("");
+
+  // =========================
+  // FETCH CATEGORY TREE
+  // =========================
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const fetchCategoryTree = async () => {
+      try {
+        setCategoriesLoading(true);
+        setCategoriesError("");
+        // /tree returns the nested category tree (with parent/child
+        // structure), not the flat list — this is what lets us show
+        // subcategories indented under their parent in the dropdown.
+        const res = await axios.get(`${API}/api/categories/tree`, {
+          signal: controller.signal,
+        });
+        const tree: CategoryNode[] = res.data || [];
+        setCategoryOptions(flattenCategoryTree(tree));
+      } catch (error) {
+        if (axios.isCancel(error)) return;
+        console.error("Failed to fetch categories", error);
+        setCategoriesError("Failed to load categories. Please refresh the page.");
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategoryTree();
+    return () => controller.abort();
+  }, []);
 
   // =========================
   // FILE CHANGE + PREVIEW
@@ -57,7 +138,6 @@ export default function ProductAddPage() {
     try {
       const arrayBuffer = await file.arrayBuffer();
 
-      // extractRawText වෙනුවට convertToHtml භාවිතා කිරීම
       const result = await mammoth.convertToHtml({
         arrayBuffer,
       });
@@ -82,6 +162,12 @@ export default function ProductAddPage() {
 
   const handleAddProduct = async (e: FormEvent) => {
     e.preventDefault();
+
+    if (!category) {
+      setMessage("❌ Please select a category.");
+      return;
+    }
+
     setLoading(true);
     setMessage("");
 
@@ -108,6 +194,9 @@ export default function ProductAddPage() {
       // =========================
       // PRODUCT DATA
       // =========================
+      // `category` here is the Category document's _id (set by the <select>
+      // below), matching what productController.js's resolveCategory() /
+      // formatProduct() expects.
 
       const productData = {
         name,
@@ -122,7 +211,7 @@ export default function ProductAddPage() {
         stock,
         isAvailable,
         specifications: {
-          featureData: featureData, // කෙලින්ම HTML එක යවනවා
+          featureData: featureData,
         },
       };
 
@@ -151,11 +240,10 @@ export default function ProductAddPage() {
       setModel("");
       setStock(0);
       setFeatureData("");
-
-      // Clear file input manually if needed using ref (optional)
     } catch (error) {
       console.error("Product add failed:", error);
-      setMessage("❌ Failed to add product.");
+      const apiMessage = axios.isAxiosError(error) && error.response?.data?.message ? error.response.data.message : "Failed to add product.";
+      setMessage(`❌ ${apiMessage}`);
     } finally {
       setLoading(false);
     }
@@ -434,11 +522,11 @@ export default function ProductAddPage() {
             >
               Category *
             </label>
-            <input
-              type="text"
+            <select
               required
               value={category}
               onChange={(e) => setCategory(e.target.value)}
+              disabled={categoriesLoading || categoryOptions.length === 0}
               className="
                 w-full
                 h-14
@@ -449,8 +537,32 @@ export default function ProductAddPage() {
                 border
                 border-neutral-200
                 dark:border-border
+                text-neutral-900
+                dark:text-white
+                outline-none
+                focus:border-secondary
+                transition
+                appearance-none
+                cursor-pointer
+                disabled:opacity-50
+                disabled:cursor-not-allowed
               "
-            />
+            >
+              <option value="" disabled>
+                {categoriesLoading ? "Loading categories..." : "Select a Category"}
+              </option>
+              {/* Value is the category's _id, matching Product.category
+                  (an ObjectId ref) — NOT the display name. Inactive
+                  categories are still shown (so existing products stay
+                  editable) but visually muted. */}
+              {categoryOptions.map((opt) => (
+                <option key={opt._id} value={opt._id} disabled={!opt.isActive}>
+                  {opt.label}
+                  {!opt.isActive ? " (inactive)" : ""}
+                </option>
+              ))}
+            </select>
+            {categoriesError && <p className="text-xs text-red-500 mt-2">{categoriesError}</p>}
           </div>
 
           <div>
@@ -718,9 +830,6 @@ export default function ProductAddPage() {
                   overflow-x-auto
                 "
               >
-                {/* Tailwind Typography (prose) classes භාවිතා කර ඇත. 
-                  tables සහ lists නිවැරදිව දිස්වීමට මෙය උදව් වේ. 
-                */}
                 <div
                   className="
                     prose
