@@ -179,7 +179,7 @@ export default function CheckoutPage() {
   // TOTALS
   // ======================================
   const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const shipping = cartItems.length > 0 ? 450 : 0;
+  const shipping = cartItems.length > 0 ? 0.0 : 0;
   const total = subtotal + shipping;
 
   // ======================================
