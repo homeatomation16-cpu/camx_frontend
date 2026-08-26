@@ -9,10 +9,12 @@ import { Search, ShoppingCart, Plus, Minus, Trash2, CreditCard, Tags, User, Calc
 
 import POSReceipt from "./POSReceipt";
 
-const rawAPI = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
+const rawAPI = process.env.NEXT_PUBLIC_API_BASE || "";
 const API = rawAPI.endsWith("/") ? rawAPI.slice(0, -1) : rawAPI;
 
 // ── Types ──────────────────────────────────────────────────────
+type PopulatedCategory = { _id: string; name: string; slug?: string };
+
 type Product = {
   _id: string;
   productId: string;
@@ -20,10 +22,16 @@ type Product = {
   price: number;
   stock: number;
   images: string[];
-  category: string;
+  category: string | PopulatedCategory | null;
 };
 
 type CartItem = Product & { cartQuantity: number };
+
+function getCategoryName(category: Product["category"]): string {
+  if (!category) return "Uncategorized";
+  if (typeof category === "string") return category;
+  return category.name || "Uncategorized";
+}
 
 // ── Skeleton Card ──────────────────────────────────────────────
 function SkeletonCard() {
@@ -77,13 +85,14 @@ export default function AdminPOSPage() {
 
   // DERIVED
   const categories = useMemo(() => {
-    return ["All", ...Array.from(new Set(products.map((p) => p.category)))];
+    return ["All", ...Array.from(new Set(products.map((p) => getCategoryName(p.category))))];
   }, [products]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const q = searchQuery.toLowerCase();
-      return (p.name.toLowerCase().includes(q) || p.productId.toLowerCase().includes(q)) && (selectedCategory === "All" || p.category === selectedCategory);
+      const categoryName = getCategoryName(p.category);
+      return (p.name.toLowerCase().includes(q) || p.productId.toLowerCase().includes(q)) && (selectedCategory === "All" || categoryName === selectedCategory);
     });
   }, [products, searchQuery, selectedCategory]);
 
@@ -139,13 +148,20 @@ export default function AdminPOSPage() {
   // CHECKOUT
   const handleCheckout = async () => {
     if (cart.length === 0) return toast.error("Cart is empty!");
+
     try {
       setIsProcessing(true);
       const token = localStorage.getItem("CAMX_TOKEN");
+
       const res = await axios.post(
         `${API}/api/orders/checkout`,
         {
-          items: cart.map((i) => ({ productId: i.productId, quantity: i.cartQuantity, price: i.price })),
+          items: cart.map((i) => ({
+            productId: i.productId, // Backend එකට අනුව මේක i._id වෙන්නත් පුළුවන්
+            _id: i._id, // ආරක්ෂාවට _id එකත් යවනවා
+            quantity: i.cartQuantity,
+            price: i.price,
+          })),
           totalPrice: grandTotal,
           paymentMethod,
           orderStatus: "COMPLETED",
@@ -155,11 +171,15 @@ export default function AdminPOSPage() {
         },
         { headers: { Authorization: `Bearer ${token}` } },
       );
+
       toast.success("Payment successful!");
       setLastOrderId(res.data.order?.orderId || `POS-${Date.now()}`);
       setOrderSuccess(true);
-    } catch {
-      toast.error("Checkout failed.");
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { message?: string } }; message?: string };
+      console.error("Checkout Error:", axiosError.response?.data || axiosError.message);
+      const errorMsg = axiosError.response?.data?.message || "Checkout failed. Check console!";
+      toast.error(`Error: ${errorMsg}`);
     } finally {
       setIsProcessing(false);
     }
@@ -168,12 +188,12 @@ export default function AdminPOSPage() {
   // ── UI ─────────────────────────────────────────────────────────
   return (
     <>
-      {/* 🖨️ PRINT ONLY SECTION (තිරයේ නොපෙනේ, Print කරන විට පමණක් පෙනේ) */}
+      {/* 🖨️ PRINT ONLY SECTION */}
       <div className="hidden print:block print:bg-white print:absolute print:inset-0 print:z-9999">
         <POSReceipt cart={cart} subTotal={subTotal} discountAmount={discountAmount} grandTotal={grandTotal} customerName={customerName} customerPhone={customerPhone} paymentMethod={paymentMethod} orderId={lastOrderId} discountPercent={discountPercent} />
       </div>
 
-      {/* 💻 MAIN SCREEN SECTION (සාමාන්‍ය POS තිරය - Print කරනවිට සැඟවේ) */}
+      {/* 💻 MAIN SCREEN SECTION */}
       <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-neutral-50 dark:bg-background font-sans print:hidden">
         {/* ══ LEFT PANEL ══ */}
         <div className="flex flex-1 flex-col overflow-hidden border-r border-neutral-200 dark:border-border">
@@ -242,13 +262,12 @@ export default function AdminPOSPage() {
                       {inCart && <div className="absolute right-2 top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-[10px] font-black text-white shadow">{inCart.cartQuantity}</div>}
 
                       <div className="relative aspect-square w-full overflow-hidden bg-neutral-50 dark:bg-neutral-900">
-                        {/* UNOPTIMIZED IMAGE FIX APPLIED HERE */}
                         <Image src={product.images[0] || "/placeholder.jpg"} alt={product.name} sizes="50vw" fill className="object-contain p-3 transition duration-500 group-hover:scale-110" unoptimized />
                       </div>
 
                       <div className="flex flex-1 flex-col justify-between p-3">
                         <div>
-                          <p className="text-[9px] font-black uppercase tracking-wider text-neutral-400">{product.category}</p>
+                          <p className="text-[9px] font-black uppercase tracking-wider text-neutral-400">{getCategoryName(product.category)}</p>
                           <h3 className="mt-0.5 line-clamp-2 text-[13px] font-bold leading-snug text-neutral-800 dark:text-white">{product.name}</h3>
                         </div>
                         <div className="mt-2.5 flex items-center justify-between border-t border-neutral-100 pt-2 dark:border-neutral-800">
@@ -344,7 +363,6 @@ export default function AdminPOSPage() {
                 cart.map((item) => (
                   <motion.div key={item.productId} layout initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20, height: 0 }} transition={{ duration: 0.22 }} className="flex gap-3 rounded-2xl border border-neutral-100 bg-white p-3 dark:border-border dark:bg-neutral-900">
                     <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-neutral-100 bg-neutral-50 dark:border-neutral-800 dark:bg-black">
-                      {/* UNOPTIMIZED IMAGE FIX APPLIED HERE */}
                       <Image src={item.images[0] || "/placeholder.jpg"} alt={item.name} fill className="object-contain p-1.5" unoptimized />
                     </div>
 

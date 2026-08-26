@@ -1,22 +1,57 @@
 "use client";
 
 import axios from "axios";
-
 import Image from "next/image";
-
 import mammoth from "mammoth";
-
-import { ChangeEvent, FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useState, useEffect } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
-type Specification = {
-  title: string;
-
-  value: string;
-
-  image: string;
+// =========================
+// CATEGORY TREE TYPES
+// =========================
+// This mirrors what GET /api/categories/tree returns from categoryController.js
+// (buildTree()): a nested tree, not a flat list.
+type CategoryNode = {
+  _id: string;
+  name: string;
+  slug: string;
+  level: number;
+  isActive: boolean;
+  children: CategoryNode[];
 };
+
+// Flattened option used to populate the <select>, keeping the tree's order
+// and depth so we can indent child categories under their parent.
+type CategoryOption = {
+  _id: string;
+  label: string; // indented display label, e.g. "— — Dome Cameras"
+  level: number;
+  isActive: boolean;
+};
+
+// Walk the tree depth-first and produce an ordered, indented option list.
+function flattenCategoryTree(nodes: CategoryNode[]): CategoryOption[] {
+  const options: CategoryOption[] = [];
+
+  const walk = (list: CategoryNode[]) => {
+    for (const node of list) {
+      const prefix = node.level > 0 ? "\u2014 ".repeat(node.level) : "";
+      options.push({
+        _id: node._id,
+        label: `${prefix}${node.name}`,
+        level: node.level,
+        isActive: node.isActive,
+      });
+      if (node.children && node.children.length > 0) {
+        walk(node.children);
+      }
+    }
+  };
+
+  walk(nodes);
+  return options;
+}
 
 export default function ProductAddPage() {
   // =========================
@@ -24,38 +59,60 @@ export default function ProductAddPage() {
   // =========================
 
   const [name, setName] = useState("");
-
   const [altName, setAltName] = useState("");
-
   const [description, setDescription] = useState("");
-
   const [price, setPrice] = useState<number>(0);
-
   const [labelPrice, setLabelPrice] = useState<number>(0);
-
   const [files, setFiles] = useState<File[]>([]);
-
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
+  // Holds the selected leaf category's ObjectId (NOT its name — the API
+  // requires a valid Category _id so it can resolve the SKU prefix and
+  // populate category details on read).
   const [category, setCategory] = useState("");
+  const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState("");
 
   const [brand, setBrand] = useState("");
-
   const [model, setModel] = useState("");
-
   const [stock, setStock] = useState<number>(0);
-
   const [isAvailable] = useState(true);
-
   const [loading, setLoading] = useState(false);
-
   const [message, setMessage] = useState("");
 
-  // =========================
-  // SPECIFICATIONS STATE
-  // =========================
+  const [featureData, setFeatureData] = useState("");
 
-  const [specifications, setSpecifications] = useState<Specification[]>([]);
+  // =========================
+  // FETCH CATEGORY TREE
+  // =========================
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const fetchCategoryTree = async () => {
+      try {
+        setCategoriesLoading(true);
+        setCategoriesError("");
+        // /tree returns the nested category tree (with parent/child
+        // structure), not the flat list — this is what lets us show
+        // subcategories indented under their parent in the dropdown.
+        const res = await axios.get(`${API}/api/categories/tree`, {
+          signal: controller.signal,
+        });
+        const tree: CategoryNode[] = res.data || [];
+        setCategoryOptions(flattenCategoryTree(tree));
+      } catch (error) {
+        if (axios.isCancel(error)) return;
+        console.error("Failed to fetch categories", error);
+        setCategoriesError("Failed to load categories. Please refresh the page.");
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategoryTree();
+    return () => controller.abort();
+  }, []);
 
   // =========================
   // FILE CHANGE + PREVIEW
@@ -64,62 +121,37 @@ export default function ProductAddPage() {
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const selectedFiles = Array.from(e.target.files);
-
       setFiles(selectedFiles);
-
       const previews = selectedFiles.map((file) => URL.createObjectURL(file));
-
       setImagePreviews(previews);
     }
   };
 
   // =========================
-  // DOCX IMPORT
+  // DOCX IMPORT (HTML CONVERSION)
   // =========================
 
   const handleDocxUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-
     if (!file) return;
 
     try {
       const arrayBuffer = await file.arrayBuffer();
 
-      const result = await mammoth.extractRawText({
+      const result = await mammoth.convertToHtml({
         arrayBuffer,
       });
 
-      const text = result.value;
+      const html = result.value;
 
-      const lines = text
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean);
-
-      const extractedSpecs = lines.map((line) => {
-        const parts = line.split(":");
-
-        return {
-          title: parts[0]?.trim() || "",
-
-          value: parts.slice(1).join(":").trim() || "",
-
-          image: "",
-        };
-      });
-
-      const validSpecs = extractedSpecs.filter((spec) => spec.title && spec.value);
-
-      if (validSpecs.length > 0) {
-        setSpecifications(validSpecs);
-
-        setMessage("✅ DOCX specifications imported successfully!");
+      if (html) {
+        setFeatureData(html);
+        setMessage("✅ DOCX template imported successfully!");
       } else {
-        setMessage("❌ No valid specifications found.");
+        setMessage("❌ No content found in the document.");
       }
     } catch (error) {
       console.error(error);
-
       setMessage("❌ Failed to parse DOCX file.");
     }
   };
@@ -131,60 +163,55 @@ export default function ProductAddPage() {
   const handleAddProduct = async (e: FormEvent) => {
     e.preventDefault();
 
-    setLoading(true);
+    if (!category) {
+      setMessage("❌ Please select a category.");
+      return;
+    }
 
+    setLoading(true);
     setMessage("");
 
     try {
       const uploadedImages: string[] = [];
-
       const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 
       // =========================
       // UPLOAD PRODUCT IMAGES
       // =========================
 
-      for (const file of files) {
-        const formData = new FormData();
+      if (files.length > 0) {
+        for (const file of files) {
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "");
 
-        formData.append("file", file);
+          const uploadResponse = await axios.post(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, formData);
 
-        formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "");
-
-        const uploadResponse = await axios.post(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, formData);
-
-        uploadedImages.push(uploadResponse.data.secure_url);
+          uploadedImages.push(uploadResponse.data.secure_url);
+        }
       }
 
       // =========================
       // PRODUCT DATA
       // =========================
+      // `category` here is the Category document's _id (set by the <select>
+      // below), matching what productController.js's resolveCategory() /
+      // formatProduct() expects.
 
       const productData = {
         name,
-
         altName: altName ? altName.split(",").map((item) => item.trim()) : [],
-
         description,
-
         price,
-
         labelPrice: labelPrice || price,
-
         images: uploadedImages,
-
         category,
-
         brand,
-
         model,
-
         stock,
-
         isAvailable,
-
         specifications: {
-          featureData: JSON.stringify(specifications),
+          featureData: featureData,
         },
       };
 
@@ -192,7 +219,7 @@ export default function ProductAddPage() {
       // SAVE PRODUCT
       // =========================
 
-      await axios.post(`${API}/products`, productData, {
+      await axios.post(`${API}/api/products`, productData, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("CAMX_TOKEN")}`,
         },
@@ -201,34 +228,22 @@ export default function ProductAddPage() {
       setMessage("✅ Product added successfully!");
 
       // RESET FORM
-
       setName("");
-
       setAltName("");
-
       setDescription("");
-
       setPrice(0);
-
       setLabelPrice(0);
-
       setFiles([]);
-
       setImagePreviews([]);
-
       setCategory("");
-
       setBrand("");
-
       setModel("");
-
       setStock(0);
-
-      setSpecifications([]);
+      setFeatureData("");
     } catch (error) {
       console.error("Product add failed:", error);
-
-      setMessage("❌ Failed to add product.");
+      const apiMessage = axios.isAxiosError(error) && error.response?.data?.message ? error.response.data.message : "Failed to add product.";
+      setMessage(`❌ ${apiMessage}`);
     } finally {
       setLoading(false);
     }
@@ -308,7 +323,6 @@ export default function ProductAddPage() {
           >
             Product Name *
           </label>
-
           <input
             type="text"
             required
@@ -352,7 +366,6 @@ export default function ProductAddPage() {
           >
             Alternative Names
           </label>
-
           <input
             type="text"
             placeholder="CCTV, wifi camera"
@@ -395,7 +408,6 @@ export default function ProductAddPage() {
           >
             Product Description *
           </label>
-
           <textarea
             rows={5}
             required
@@ -440,7 +452,6 @@ export default function ProductAddPage() {
             >
               Selling Price *
             </label>
-
             <input
               type="number"
               required
@@ -475,7 +486,6 @@ export default function ProductAddPage() {
             >
               Label Price
             </label>
-
             <input
               type="number"
               value={labelPrice || ""}
@@ -512,12 +522,11 @@ export default function ProductAddPage() {
             >
               Category *
             </label>
-
-            <input
-              type="text"
+            <select
               required
               value={category}
               onChange={(e) => setCategory(e.target.value)}
+              disabled={categoriesLoading || categoryOptions.length === 0}
               className="
                 w-full
                 h-14
@@ -528,8 +537,32 @@ export default function ProductAddPage() {
                 border
                 border-neutral-200
                 dark:border-border
+                text-neutral-900
+                dark:text-white
+                outline-none
+                focus:border-secondary
+                transition
+                appearance-none
+                cursor-pointer
+                disabled:opacity-50
+                disabled:cursor-not-allowed
               "
-            />
+            >
+              <option value="" disabled>
+                {categoriesLoading ? "Loading categories..." : "Select a Category"}
+              </option>
+              {/* Value is the category's _id, matching Product.category
+                  (an ObjectId ref) — NOT the display name. Inactive
+                  categories are still shown (so existing products stay
+                  editable) but visually muted. */}
+              {categoryOptions.map((opt) => (
+                <option key={opt._id} value={opt._id} disabled={!opt.isActive}>
+                  {opt.label}
+                  {!opt.isActive ? " (inactive)" : ""}
+                </option>
+              ))}
+            </select>
+            {categoriesError && <p className="text-xs text-red-500 mt-2">{categoriesError}</p>}
           </div>
 
           <div>
@@ -547,7 +580,6 @@ export default function ProductAddPage() {
             >
               Brand
             </label>
-
             <input
               type="text"
               value={brand}
@@ -584,7 +616,6 @@ export default function ProductAddPage() {
             >
               Model
             </label>
-
             <input
               type="text"
               value={model}
@@ -618,7 +649,6 @@ export default function ProductAddPage() {
             >
               Stock *
             </label>
-
             <input
               type="number"
               required
@@ -655,7 +685,6 @@ export default function ProductAddPage() {
           >
             Product Images *
           </label>
-
           <input
             type="file"
             multiple
@@ -693,11 +722,14 @@ export default function ProductAddPage() {
                 <div
                   key={i}
                   className="
-                      relative
-                      aspect-square
-                      rounded-xl
-                      overflow-hidden
-                    "
+                    relative
+                    aspect-square
+                    rounded-xl
+                    overflow-hidden
+                    border
+                    border-neutral-200
+                    dark:border-border
+                  "
                 >
                   <Image src={url} alt="preview" fill unoptimized loading="lazy" sizes="200px" className="object-cover" />
                 </div>
@@ -718,9 +750,8 @@ export default function ProductAddPage() {
                   dark:text-white
                 "
               >
-                Technical Specifications
+                Technical Specifications (Template)
               </h3>
-
               <p
                 className="
                   text-xs
@@ -729,7 +760,7 @@ export default function ProductAddPage() {
                   mt-1
                 "
               >
-                Upload DOCX specification sheet to auto-generate specs.
+                Upload DOCX specification sheet to preserve original tables and formatting.
               </p>
             </div>
           </div>
@@ -769,27 +800,10 @@ export default function ProductAddPage() {
                 file:cursor-pointer
               "
             />
-
-            <p
-              className="
-                mt-3
-                text-xs
-                text-neutral-500
-                dark:text-gray-400
-              "
-            >
-              Example:
-              <br />
-              Resolution: 4MP
-              <br />
-              Lens: 2.8mm
-              <br />
-              Night Vision: 30m IR
-            </p>
           </div>
 
-          {/* PREVIEW */}
-          {specifications.length > 0 && (
+          {/* TEMPLATE PREVIEW */}
+          {featureData && (
             <div className="mt-6 space-y-4">
               <h4
                 className="
@@ -801,44 +815,40 @@ export default function ProductAddPage() {
                   dark:text-gray-400
                 "
               >
-                Imported Specifications
+                Template Preview
               </h4>
 
-              {specifications.map((spec, index) => (
+              <div
+                className="
+                  p-6
+                  rounded-2xl
+                  bg-white
+                  dark:bg-neutral-900
+                  border
+                  border-neutral-200
+                  dark:border-border
+                  overflow-x-auto
+                "
+              >
                 <div
-                  key={index}
                   className="
-                      p-4
-                      rounded-2xl
-                      bg-neutral-50
-                      dark:bg-background
-                      border
-                      border-neutral-200
-                      dark:border-border
-                    "
-                >
-                  <h5
-                    className="
-                        font-bold
-                        text-neutral-900
-                        dark:text-white
-                      "
-                  >
-                    {spec.title}
-                  </h5>
-
-                  <p
-                    className="
-                        mt-1
-                        text-sm
-                        text-neutral-600
-                        dark:text-gray-300
-                      "
-                  >
-                    {spec.value}
-                  </p>
-                </div>
-              ))}
+                    prose
+                    prose-sm
+                    max-w-none
+                    prose-table:w-full
+                    prose-table:border
+                    prose-table:border-collapse
+                    prose-td:border
+                    prose-th:border
+                    prose-td:p-3
+                    prose-th:p-3
+                    prose-th:bg-neutral-100
+                    dark:prose-invert
+                    dark:prose-th:bg-neutral-800
+                  "
+                  dangerouslySetInnerHTML={{ __html: featureData }}
+                />
+              </div>
             </div>
           )}
         </div>

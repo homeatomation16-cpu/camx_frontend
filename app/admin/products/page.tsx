@@ -4,32 +4,72 @@
 
 import Image from "next/image";
 import mammoth from "mammoth";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
+
+const API = process.env.NEXT_PUBLIC_API_BASE;
+
+// =========================
+// CATEGORY TREE TYPES & UTILS
+// =========================
+
+type CategoryNode = {
+  _id: string;
+  name: string;
+  slug: string;
+  level: number;
+  isActive: boolean;
+  children: CategoryNode[];
+};
+
+type CategoryOption = {
+  _id: string;
+  label: string;
+  level: number;
+  isActive: boolean;
+};
+
+function flattenCategoryTree(nodes: CategoryNode[]): CategoryOption[] {
+  const options: CategoryOption[] = [];
+
+  const walk = (list: CategoryNode[]) => {
+    for (const node of list) {
+      const prefix = node.level > 0 ? "\u2014 ".repeat(node.level) : "";
+      options.push({
+        _id: node._id,
+        label: `${prefix}${node.name}`,
+        level: node.level,
+        isActive: node.isActive,
+      });
+      if (node.children && node.children.length > 0) {
+        walk(node.children);
+      }
+    }
+  };
+
+  walk(nodes);
+  return options;
+}
+
+// =========================
+// PRODUCT TYPES
+// =========================
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type CategoryOrBrand = string | { _id?: string; name?: string; slug?: string; [key: string]: any };
 
 type Product = {
   _id?: string;
-
   productId: string;
-
   name: string;
-
   description: string;
-
   price: number;
-
   labelPrice: number;
-
   images: string[];
-
-  category: string;
-
-  brand: string;
-
+  category: CategoryOrBrand;
+  brand: CategoryOrBrand;
   stock: number;
-
   isAvailable: boolean;
-
   specifications?: {
     featureData?: string;
   };
@@ -37,22 +77,45 @@ type Product = {
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
-
   const [loading, setLoading] = useState(true);
-
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  // Categories States
+  const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+
+  // =========================
+  // FETCH CATEGORIES
+  // =========================
+  useEffect(() => {
+    const fetchCategoryTree = async () => {
+      try {
+        setCategoriesLoading(true);
+        const res = await axios.get(`${API}/api/categories/tree`);
+        const tree: CategoryNode[] = res.data || [];
+        setCategoryOptions(flattenCategoryTree(tree));
+      } catch (error) {
+        console.error("Failed to fetch categories", error);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategoryTree();
+  }, []);
 
   // =========================
   // FETCH PRODUCTS
   // =========================
-
-  async function fetchProducts() {
+  // useCallback eken fetchProducts function eke reference eka stable karanawa.
+  // Meken pahala useEffect eka mount wenakota witharak run wenne, infinite loop eka
+  // (fetch -> setState -> re-render -> new fetchProducts ref -> effect re-run -> fetch...) nathi karanawa.
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
-
       const token = localStorage.getItem("CAMX_TOKEN");
 
-      const res = await axios.get("http://localhost:5000/api/products", {
+      const res = await axios.get(`${API}/api/products`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -64,28 +127,22 @@ export default function AdminProductsPage() {
     } finally {
       setLoading(false);
     }
-  }
-
-  // =========================
-  // LOAD PRODUCTS
-  // =========================
+  }, []);
 
   useEffect(() => {
     void fetchProducts();
-  }, []);
+  }, [fetchProducts]);
 
   // =========================
   // HANDLE INPUT CHANGE
   // =========================
-
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     if (!editingProduct) return;
 
     const { name, value } = e.target;
 
     setEditingProduct({
       ...editingProduct,
-
       [name]: name === "price" || name === "labelPrice" || name === "stock" ? Number(value) : value,
     });
   }
@@ -93,7 +150,6 @@ export default function AdminProductsPage() {
   // =========================
   // DOCX TEMPLATE IMPORT
   // =========================
-
   const handleDocxUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingProduct) return;
 
@@ -104,7 +160,6 @@ export default function AdminProductsPage() {
     try {
       const arrayBuffer = await file.arrayBuffer();
 
-      // DOCX -> HTML
       const result = await mammoth.convertToHtml({
         arrayBuffer,
       });
@@ -113,7 +168,6 @@ export default function AdminProductsPage() {
 
       setEditingProduct({
         ...editingProduct,
-
         specifications: {
           featureData: html,
         },
@@ -122,7 +176,6 @@ export default function AdminProductsPage() {
       alert("DOCX template imported successfully");
     } catch (error) {
       console.log(error);
-
       alert("Failed to import DOCX file");
     }
   };
@@ -130,14 +183,28 @@ export default function AdminProductsPage() {
   // =========================
   // UPDATE PRODUCT
   // =========================
-
   async function handleUpdate() {
     if (!editingProduct) return;
 
     try {
       const token = localStorage.getItem("CAMX_TOKEN");
 
-      await axios.put(`http://localhost:5000/api/products/${editingProduct.productId}`, editingProduct, {
+      const updatePayload = { ...editingProduct };
+
+      // Category object එකෙන් _id එක හෝ name එක ගැනීම
+      if (typeof updatePayload.category === "object" && updatePayload.category !== null) {
+        updatePayload.category = updatePayload.category._id ?? updatePayload.category.name ?? "";
+      }
+
+      // Brand object එකෙන් _id එක හෝ name එක ගැනීම
+      if (typeof updatePayload.brand === "object" && updatePayload.brand !== null) {
+        updatePayload.brand = updatePayload.brand._id ?? updatePayload.brand.name ?? "";
+      }
+
+      // Backend error එක වළක්වා ගැනීමට _id ඉවත් කිරීම
+      delete updatePayload._id;
+
+      await axios.put(`${API}/api/products/${editingProduct.productId}`, updatePayload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -146,19 +213,26 @@ export default function AdminProductsPage() {
       alert("Product updated successfully");
 
       setEditingProduct(null);
-
       fetchProducts();
-    } catch (error) {
-      console.log(error);
+    } catch (error: unknown) {
+      const axiosError = error as {
+        response?: {
+          data?: {
+            message?: string;
+          };
+        };
+        message?: string;
+      };
 
-      alert("Failed to update product");
+      console.error("Update Error:", axiosError.response?.data || axiosError.message);
+      const errorMsg = axiosError.response?.data?.message || "Failed to update product. Check console for details.";
+      alert(`Error: ${errorMsg}`);
     }
   }
 
   // =========================
   // DELETE PRODUCT
   // =========================
-
   async function handleDelete(productId: string) {
     const confirmDelete = confirm("Delete this product?");
 
@@ -167,7 +241,7 @@ export default function AdminProductsPage() {
     try {
       const token = localStorage.getItem("CAMX_TOKEN");
 
-      await axios.delete(`http://localhost:5000/api/products/${productId}`, {
+      await axios.delete(`${API}/api/products/${productId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -258,7 +332,7 @@ export default function AdminProductsPage() {
               <input
                 type="text"
                 name="name"
-                value={editingProduct.name}
+                value={editingProduct.name || ""}
                 onChange={handleChange}
                 placeholder="Product Name"
                 className="
@@ -272,13 +346,12 @@ export default function AdminProductsPage() {
                 "
               />
 
-              {/* CATEGORY */}
-              <input
-                type="text"
+              {/* CATEGORY DROPDOWN */}
+              <select
                 name="category"
-                value={editingProduct.category}
+                value={typeof editingProduct.category === "object" ? editingProduct.category?._id || "" : editingProduct.category || ""}
                 onChange={handleChange}
-                placeholder="Category"
+                disabled={categoriesLoading || categoryOptions.length === 0}
                 className="
                   h-12
                   px-4
@@ -287,14 +360,26 @@ export default function AdminProductsPage() {
                   border-border
                   bg-background
                   outline-none
+                  appearance-none
+                  cursor-pointer
+                  disabled:opacity-50
                 "
-              />
+              >
+                <option value="" disabled>
+                  {categoriesLoading ? "Loading categories..." : "Select a Category"}
+                </option>
+                {categoryOptions.map((opt) => (
+                  <option key={opt._id} value={opt._id} disabled={!opt.isActive}>
+                    {opt.label} {!opt.isActive && "(inactive)"}
+                  </option>
+                ))}
+              </select>
 
               {/* BRAND */}
               <input
                 type="text"
                 name="brand"
-                value={editingProduct.brand}
+                value={typeof editingProduct.brand === "object" ? editingProduct.brand?.name || "" : editingProduct.brand || ""}
                 onChange={handleChange}
                 placeholder="Brand"
                 className="
@@ -312,7 +397,7 @@ export default function AdminProductsPage() {
               <input
                 type="number"
                 name="price"
-                value={editingProduct.price}
+                value={editingProduct.price || 0}
                 onChange={handleChange}
                 placeholder="Price"
                 className="
@@ -330,7 +415,7 @@ export default function AdminProductsPage() {
               <input
                 type="number"
                 name="labelPrice"
-                value={editingProduct.labelPrice}
+                value={editingProduct.labelPrice || 0}
                 onChange={handleChange}
                 placeholder="Label Price"
                 className="
@@ -348,7 +433,7 @@ export default function AdminProductsPage() {
               <input
                 type="number"
                 name="stock"
-                value={editingProduct.stock}
+                value={editingProduct.stock || 0}
                 onChange={handleChange}
                 placeholder="Stock"
                 className="
@@ -365,11 +450,10 @@ export default function AdminProductsPage() {
               {/* IMAGE */}
               <input
                 type="text"
-                value={editingProduct.images[0]}
+                value={editingProduct.images?.[0] || ""}
                 onChange={(e) =>
                   setEditingProduct({
                     ...editingProduct,
-
                     images: [e.target.value],
                   })
                 }
@@ -389,7 +473,7 @@ export default function AdminProductsPage() {
               {/* DESCRIPTION */}
               <textarea
                 name="description"
-                value={editingProduct.description}
+                value={editingProduct.description || ""}
                 onChange={handleChange}
                 rows={5}
                 placeholder="Description"
@@ -526,7 +610,7 @@ export default function AdminProductsPage() {
         >
           {products.map((product) => (
             <div
-              key={product.productId}
+              key={product.productId || product._id}
               className="
                 overflow-hidden
                 rounded-3xl
@@ -544,8 +628,8 @@ export default function AdminProductsPage() {
                 "
               >
                 <Image
-                  src={product.images[0]}
-                  alt={product.name}
+                  src={product.images?.[0] || "/placeholder-image.jpg"}
+                  alt={product.name || "Product Image"}
                   fill
                   unoptimized
                   loading="lazy"
@@ -578,7 +662,7 @@ export default function AdminProductsPage() {
                     text-muted-foreground
                   "
                 >
-                  {product.category}
+                  {typeof product.category === "object" ? product.category?.name || "Unknown Category" : product.category || "Unknown Category"}
                 </p>
 
                 <div className="mt-4">
@@ -589,7 +673,7 @@ export default function AdminProductsPage() {
                     "
                   >
                     Rs.
-                    {product.price.toLocaleString()}
+                    {product.price?.toLocaleString()}
                   </p>
 
                   <p
