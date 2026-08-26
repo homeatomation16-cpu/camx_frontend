@@ -79,7 +79,7 @@ export default function UserData({ compact = false }: Props) {
       <div className="w-full flex flex-col gap-4">
         {/* USER */}
         <div className="flex items-center gap-3">
-          <Image src={imageSrc} alt={user.name || "User"} width={40} height={40} unoptimized className="rounded-full border border-gray-200 dark:border-gray-700" />
+          <Image src={imageSrc} alt={user.name || "User"} width={40} height={40} unoptimized priority className="rounded-full border border-gray-200 dark:border-gray-700" />
           <div>
             <p className="font-bold text-sm text-gray-800 dark:text-white">{user.name}</p>
             <p className="text-[10px] text-gray-500 dark:text-gray-400">{user.email}</p>

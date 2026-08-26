@@ -8,18 +8,31 @@ import type { ReactNode } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
 
+// category / brand backend eken enne string ekak vidihata witharak nemei —
+// { _id, name, slug } object ekak vidihatath enna puluwan (populated reference).
+// eken tamai "Objects are not valid as a React child" error eka awe.
+type CategoryOrBrand = string | { _id?: string; name?: string; slug?: string } | null | undefined;
+
 type Product = {
   _id?: string;
   productId: string;
   name: string;
-  category?: string;
-  brand?: string;
+  category?: CategoryOrBrand;
+  brand?: CategoryOrBrand;
   description?: string;
   price: number;
   stock: number;
   images?: string[];
   isAvailable?: boolean;
 };
+
+// CategoryOrBrand ekak, eka object ekak wunath, string ekak wunath, hemadama
+// render karanna puluwan plain string ekak bawata convert karanawa.
+function displayName(value: CategoryOrBrand): string {
+  if (!value) return "";
+  if (typeof value === "object") return value.name ?? value.slug ?? "";
+  return value;
+}
 
 type StockStatus = "In Stock" | "Low Stock" | "Out of Stock";
 
@@ -145,8 +158,13 @@ export default function InventoryPage() {
         return matchesSearch && matchesStatus;
       })
       .sort((a, b) => {
-        const av = a[sortKey] ?? "";
-        const bv = b[sortKey] ?? "";
+        // category/brand object wenna puluwan nisa, sort karanna kalin
+        // display string ekata convert karanawa — natan object < object
+        // comparison eka wetahot NaN wage adaal-nathi result ekak dennawa.
+        const rawA = a[sortKey];
+        const rawB = b[sortKey];
+        const av = typeof rawA === "object" && rawA !== null ? displayName(rawA as CategoryOrBrand) : (rawA ?? "");
+        const bv = typeof rawB === "object" && rawB !== null ? displayName(rawB as CategoryOrBrand) : (rawB ?? "");
         const cmp = av < bv ? -1 : av > bv ? 1 : 0;
         return sortDir === "asc" ? cmp : -cmp;
       });
@@ -271,14 +289,16 @@ export default function InventoryPage() {
                 ) : (
                   filteredProducts.map((p) => {
                     const status = getStockStatus(p.stock);
+                    const categoryLabel = displayName(p.category);
+                    const brandLabel = displayName(p.brand);
                     return (
                       <tr key={p.productId} className="hover:bg-slate-50/70 transition-colors group">
                         <td className="px-5 py-4 font-mono text-xs text-slate-400 group-hover:text-slate-600">{p.productId}</td>
                         <td className="px-5 py-4 font-semibold text-slate-800">
                           {p.name}
-                          {p.brand && <span className="ml-2 text-xs font-normal text-slate-400">{p.brand}</span>}
+                          {brandLabel && <span className="ml-2 text-xs font-normal text-slate-400">{brandLabel}</span>}
                         </td>
-                        <td className="px-5 py-4 text-slate-500">{p.category ?? <span className="text-slate-300 italic">—</span>}</td>
+                        <td className="px-5 py-4 text-slate-500">{categoryLabel || <span className="text-slate-300 italic">—</span>}</td>
                         <td className="px-5 py-4 font-semibold text-slate-700 tabular-nums">LKR {p.price.toLocaleString()}</td>
                         <td className="px-5 py-4">
                           <StockBar stock={p.stock} />
