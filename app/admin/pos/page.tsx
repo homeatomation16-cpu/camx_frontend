@@ -13,6 +13,7 @@ const rawAPI = process.env.NEXT_PUBLIC_API_BASE || "";
 const API = rawAPI.endsWith("/") ? rawAPI.slice(0, -1) : rawAPI;
 
 // ── Types ──────────────────────────────────────────────────────
+
 type PopulatedCategory = { _id: string; name: string; slug?: string };
 
 type Product = {
@@ -84,6 +85,8 @@ export default function AdminPOSPage() {
   }, []);
 
   // DERIVED
+  // Dedupe by the normalized category NAME, not the raw (possibly-object)
+  // category value — this is what actually fixes the duplicate-key warning.
   const categories = useMemo(() => {
     return ["All", ...Array.from(new Set(products.map((p) => getCategoryName(p.category))))];
   }, [products]);
