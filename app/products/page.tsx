@@ -12,6 +12,18 @@ import PriceRangeSlider from "@/app/components/PriceRangeSlider";
 const API = process.env.NEXT_PUBLIC_API_BASE;
 const MAX_PRICE = 100000;
 
+// Backend eken category/brand string ekak vidihata witharak nemei —
+// { _id, name, slug } object ekak vidihatath enna puluwan (populated reference).
+// Object ekama key ekak/label ekak vidihata use kalahot "[object Object]"
+// widihata stringify wenawa — eka thamai sidebar eke penune bug eka.
+type CategoryOrBrand = string | { _id?: string; name?: string; slug?: string } | null | undefined;
+
+function displayName(value: CategoryOrBrand): string {
+  if (!value) return "";
+  if (typeof value === "object") return value.name ?? value.slug ?? "";
+  return value;
+}
+
 type Product = {
   _id: string;
   productId?: string;
@@ -19,11 +31,11 @@ type Product = {
   price: number;
   labelPrice?: number;
   images: string[];
-  category: string;
+  category: CategoryOrBrand;
   subcategory?: string;
   description?: string;
   stock?: number;
-  brand?: string;
+  brand?: CategoryOrBrand;
 };
 
 // ── Skeleton Card ──────────────────────────────────────────────
@@ -85,10 +97,12 @@ export default function ProductsPage() {
   }, []);
 
   /* CATEGORY TREE */
+  // Category/brand object wenna puluwan nisa, tree eke key ekak vidihata
+  // danna kalin displayName() eken plain string ekakata convert karanawa.
   const categoryTree = useMemo(() => {
     const tree: Record<string, string[]> = {};
     products.forEach((p) => {
-      const cat = p.category || "Other";
+      const cat = displayName(p.category) || "Other";
       const sub = p.subcategory || "General";
       if (!tree[cat]) tree[cat] = [];
       if (!tree[cat].includes(sub)) tree[cat].push(sub);
@@ -97,7 +111,7 @@ export default function ProductsPage() {
   }, [products]);
 
   /* BRANDS */
-  const brands = useMemo(() => [...new Set(products.map((p) => p.brand || "Other"))], [products]);
+  const brands = useMemo(() => [...new Set(products.map((p) => displayName(p.brand) || "Other"))], [products]);
 
   function toggleBrand(brand: string) {
     setSelectedBrands((prev) => {
@@ -147,12 +161,17 @@ export default function ProductsPage() {
   }, [selectedCategory, selectedSubcategory, selectedBrands, minPrice, maxPrice]);
 
   /* FILTERED */
+  // matchCat/matchBrand eth displayName() eken normalize karapu string ekakata
+  // dan compare karanne — object vs string comparison eka nisa filter eka
+  // kalin wada karala nathi wune.
   const filteredProducts = useMemo(() => {
     let result = products.filter((p) => {
+      const catName = displayName(p.category) || "Other";
+      const brandName = displayName(p.brand) || "Other";
       const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
-      const matchCat = selectedCategory === "All" || p.category === selectedCategory;
+      const matchCat = selectedCategory === "All" || catName === selectedCategory;
       const matchSub = !selectedSubcategory || p.subcategory === selectedSubcategory;
-      const matchBrand = selectedBrands.size === 0 || selectedBrands.has(p.brand || "Other");
+      const matchBrand = selectedBrands.size === 0 || selectedBrands.has(brandName);
       const matchPrice = p.price >= minPrice && p.price <= maxPrice;
       return matchSearch && matchCat && matchSub && matchBrand && matchPrice;
     });

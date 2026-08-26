@@ -11,6 +11,19 @@ import { FaStar, FaShoppingCart, FaEye } from "react-icons/fa";
 
 import { MdLocalShipping } from "react-icons/md";
 
+// Backend eken category/brand string ekak vidihata witharak nemei —
+// { _id, name, slug } object ekak vidihatath enna puluwan (populated reference).
+// page.tsx eke Product type ekath methanata match wenna one nisa methanath
+// CategoryOrBrand ekama use karanawa — nathnam TS structural type error ekak denawa
+// (Type 'Product' is not assignable to type 'Product'... unrelated types).
+type CategoryOrBrand = string | { _id?: string; name?: string; slug?: string } | null | undefined;
+
+function displayName(value: CategoryOrBrand): string {
+  if (!value) return "";
+  if (typeof value === "object") return value.name ?? value.slug ?? "";
+  return value;
+}
+
 type Product = {
   _id: string;
 
@@ -24,7 +37,7 @@ type Product = {
 
   images: string[];
 
-  category: string;
+  category: CategoryOrBrand;
 
   subcategory?: string;
 
@@ -32,7 +45,7 @@ type Product = {
 
   stock?: number;
 
-  brand?: string;
+  brand?: CategoryOrBrand;
 
   rating?: number;
 };
@@ -484,7 +497,7 @@ export default function ProductCard({ product }: Props) {
               text-secondary
             "
           >
-            {product.brand || "CAMX"}
+            {displayName(product.brand) || "CAMX"}
           </span>
 
           {product.rating && (
