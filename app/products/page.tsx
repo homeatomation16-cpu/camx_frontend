@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import { Search, X, ChevronDown } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ComponentProps } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import ProductCard from "@/app/components/ProductCard";
@@ -24,7 +24,7 @@ function displayName(value: CategoryOrBrand): string {
   return value;
 }
 
-type Product = {
+type CatalogProduct = {
   _id: string;
   productId?: string;
   name: string;
@@ -36,6 +36,8 @@ type Product = {
   description?: string;
   stock?: number;
   brand?: string;
+  rating?: number;
+  reviews?: number;
 };
 
 function SkeletonCard() {

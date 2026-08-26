@@ -4,21 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaStar, FaShoppingCart, FaEye, FaRegStar, FaStarHalfAlt } from "react-icons/fa";
+import { FaStar, FaShoppingCart, FaEye } from "react-icons/fa";
 import { MdLocalShipping } from "react-icons/md";
-
-// Backend eken category/brand string ekak vidihata witharak nemei —
-// { _id, name, slug } object ekak vidihatath enna puluwan (populated reference).
-// page.tsx eke Product type ekath methanata match wenna one nisa methanath
-// CategoryOrBrand ekama use karanawa — nathnam TS structural type error ekak denawa
-// (Type 'Product' is not assignable to type 'Product'... unrelated types).
-type CategoryOrBrand = string | { _id?: string; name?: string; slug?: string } | null | undefined;
-
-function displayName(value: CategoryOrBrand): string {
-  if (!value) return "";
-  if (typeof value === "object") return value.name ?? value.slug ?? "";
-  return value;
-}
 
 type Product = {
   _id: string;

@@ -23,9 +23,17 @@ export default function ProductDescriptionSection({ productName, description, hi
 
   if (!description && (!highlights || highlights.length === 0)) return null;
 
-  const isLong = (description?.length || 0) > 260;
+  // Array.from eken emoji (surrogate pair) athara wenama katakaranne na —
+  // .slice() use kalahot ehema characters athare kadala, "broken" glyph pennanawa.
+  const chars = description ? Array.from(description) : [];
 
-  const shownText = expanded || !isLong ? description : `${description?.slice(0, 260).trim()}...`;
+  const isLong = chars.length > 260;
+
+  const shownText = expanded || !isLong ? description : `${chars.slice(0, 260).join("").trim()}...`;
+
+  const shownHighlights = highlights?.slice(0, 6) || [];
+
+  const remainingCount = (highlights?.length || 0) - shownHighlights.length;
 
   return (
     <section className="mt-14">
@@ -46,14 +54,22 @@ export default function ProductDescriptionSection({ productName, description, hi
             </>
           )}
 
-          {highlights && highlights.length > 0 && (
-            <div className="mt-6 grid gap-x-8 gap-y-2.5 sm:grid-cols-2">
-              {highlights.map((item, i) => (
-                <div key={i} className="flex items-start gap-2 text-sm text-neutral-700 dark:text-neutral-300">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-secondary" />
-                  {item}
-                </div>
-              ))}
+          {shownHighlights.length > 0 && (
+            <div className="mt-6">
+              <div className="grid gap-x-8 gap-y-2.5 sm:grid-cols-2">
+                {shownHighlights.map((item, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm text-neutral-700 dark:text-neutral-300">
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-secondary" />
+                    {item}
+                  </div>
+                ))}
+              </div>
+
+              {remainingCount > 0 && (
+                <a href="#specifications" className="mt-4 inline-block text-xs font-bold uppercase tracking-wide text-secondary hover:underline">
+                  +{remainingCount} more in full specifications
+                </a>
+              )}
             </div>
           )}
         </div>
@@ -72,7 +88,7 @@ export default function ProductDescriptionSection({ productName, description, hi
                 ))}
               </div>
 
-              <p className="mb-3 text-sm italic leading-relaxed text-neutral-600 dark:text-neutral-400">"{featuredReview.body}"</p>
+              <p className="mb-3 text-sm italic leading-relaxed text-neutral-600 dark:text-neutral-400">&quot;{featuredReview.body}&quot;</p>
 
               <p className="text-xs font-bold">{featuredReview.author}</p>
 
