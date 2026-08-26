@@ -150,17 +150,20 @@ export default function AdminProductsPage() {
     // Database එකෙන් එන 0.06 වගේ අගයක් UI එකට 6 ලෙස පරිවර්තනය කිරීම
     const feePercentage = product.shippingOptions?.protectionFeePercentage ? Math.round(product.shippingOptions.protectionFeePercentage * 100) : 6;
 
+    // ✅ "?? true" වෙනුවට "?? false" — product එකට මේ options කලින්
+    // set කරලා නැත්නම් edit modal එකේත් unchecked ලෙසම පේනවා. admin
+    // Update click කළොත් (touch නොකළත්), false values විතරයි save වෙන්නේ.
     const productToEdit = {
       ...product,
       shippingOptions: {
-        priceMatch: product.shippingOptions?.priceMatch ?? true,
-        protectionPlan: product.shippingOptions?.protectionPlan ?? true,
+        priceMatch: product.shippingOptions?.priceMatch ?? false,
+        protectionPlan: product.shippingOptions?.protectionPlan ?? false,
         protectionFeePercentage: feePercentage,
-        freeDelivery: product.shippingOptions?.freeDelivery ?? true,
+        freeDelivery: product.shippingOptions?.freeDelivery ?? false,
         deliveryDaysMin: product.shippingOptions?.deliveryDaysMin ?? 3,
         deliveryDaysMax: product.shippingOptions?.deliveryDaysMax ?? 6,
-        pickupAvailable: product.shippingOptions?.pickupAvailable ?? true,
-        pickupTime: product.shippingOptions?.pickupTime ?? "24h at our Colombo showroom",
+        pickupAvailable: product.shippingOptions?.pickupAvailable ?? false,
+        pickupTime: product.shippingOptions?.pickupTime ?? "187/B/1 Colombo Horana Road,Bokundara, Piliyandala Showroom",
       },
     };
 
@@ -435,7 +438,7 @@ export default function AdminProductsPage() {
                   <div className="grid grid-cols-4 gap-4 mt-4">
                     {imagePreviews.map((url, i) => (
                       <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border">
-                        <Image src={url} alt="preview" fill unoptimized loading="lazy" sizes="200px" className="object-cover" />
+                        <Image src={url} alt="preview" fill unoptimized loading="eager" sizes="200px" className="object-cover" />
                       </div>
                     ))}
                   </div>
@@ -486,7 +489,7 @@ export default function AdminProductsPage() {
           {products.map((product) => (
             <div key={product.productId || product._id} className="overflow-hidden rounded-3xl border border-border bg-card">
               <div className="relative w-full h-60">
-                <Image src={product.images?.[0] || "/placeholder-image.jpg"} alt={product.name || "Product Image"} fill unoptimized loading="lazy" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" />
+                <Image src={product.images?.[0] || "/placeholder-image.jpg"} alt={product.name || "Product Image"} fill unoptimized loading="eager" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" />
               </div>
 
               <div className="p-5">

@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import { Search, X, ChevronDown } from "lucide-react";
-import { useEffect, useMemo, useState, type ComponentProps } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import ProductCard from "@/app/components/ProductCard";
@@ -67,7 +67,7 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
 }
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -90,7 +90,7 @@ export default function ProductsPage() {
 
         // 2. ලබාගත් හැම Product එකක් සඳහාම අදාල Reviews ලබාගෙන Rating එක ගණනය කිරීම
         const productsWithRatings = await Promise.all(
-          fetchedProducts.map(async (p: Product) => {
+          fetchedProducts.map(async (p: CatalogProduct) => {
             try {
               const reviewRes = await axios.get(`${API}/api/reviews/product/${p._id}`);
               const productReviews = reviewRes.data.reviews || [];
@@ -344,7 +344,7 @@ export default function ProductsPage() {
                 <AnimatePresence initial={false} mode="popLayout">
                   {filteredProducts.map((product) => (
                     <motion.div key={product._id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }}>
-                      <ProductCard product={product} />
+                      <ProductCard product={{ ...product, category: displayName(product.category) }} />
                     </motion.div>
                   ))}
                 </AnimatePresence>

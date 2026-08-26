@@ -3,8 +3,9 @@
 import axios from "axios";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-
+import { IoBagCheckOutline } from "react-icons/io5";
 import { FaMinus, FaPlus, FaShoppingCart, FaCheckCircle } from "react-icons/fa";
 import { MdVerified, MdLocalShipping, MdSecurity, MdSwapHoriz } from "react-icons/md";
 import { motion, AnimatePresence } from "framer-motion";
@@ -116,11 +117,37 @@ function parseHighlights(featureData?: string): string[] {
   return lines.filter((line, i) => !(i === 0 && isTitleLine(line)));
 }
 
+// Cart එකට item එකක් add/merge කරන logic එක (Add to Cart සහ Checkout දෙකටම පොදු)
+function upsertCartItem(product: Product, quantity: number) {
+  const storedCart = localStorage.getItem("CAMX_CART");
+  const currentCart: CartItem[] = storedCart ? JSON.parse(storedCart) : [];
+  const existingIndex = currentCart.findIndex((item) => item._id === product._id);
+
+  if (existingIndex > -1) {
+    currentCart[existingIndex].quantity += quantity;
+  } else {
+    currentCart.push({
+      _id: product._id,
+      productId: product.productId || "",
+      name: product.name,
+      price: product.price || 0,
+      image: product.images?.[0] || "/placeholder.jpg",
+      quantity,
+      stock: product.stock,
+    });
+  }
+
+  localStorage.setItem("CAMX_CART", JSON.stringify(currentCart));
+  window.dispatchEvent(new Event("storage"));
+}
+
 // ======================================
 // COMPONENT
 // ======================================
 
 export default function ProductOverview({ id }: Props) {
+  const router = useRouter();
+
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedImage, setSelectedImage] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -128,6 +155,7 @@ export default function ProductOverview({ id }: Props) {
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [addedToCart, setAddedToCart] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   // ======================================
   // FETCH DATA
@@ -187,28 +215,22 @@ export default function ProductOverview({ id }: Props) {
   const handleAddToCart = () => {
     if (!product) return;
 
-    const storedCart = localStorage.getItem("CAMX_CART");
-    const currentCart: CartItem[] = storedCart ? JSON.parse(storedCart) : [];
-    const existingIndex = currentCart.findIndex((item) => item._id === product._id);
-
-    if (existingIndex > -1) {
-      currentCart[existingIndex].quantity += quantity;
-    } else {
-      currentCart.push({
-        _id: product._id,
-        productId: product.productId || "",
-        name: product.name,
-        price: product.price || 0,
-        image: product.images?.[0] || "/placeholder.jpg",
-        quantity,
-        stock: product.stock,
-      });
-    }
-
-    localStorage.setItem("CAMX_CART", JSON.stringify(currentCart));
-    window.dispatchEvent(new Event("storage"));
+    upsertCartItem(product, quantity);
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
+  };
+
+  // ======================================
+  // CHECKOUT (Buy Now)
+  // ======================================
+
+  const handleCheckout = () => {
+    if (!product) return;
+
+    setCheckoutLoading(true);
+    // දැනට තියෙන cart එකට මේ product එකත් add/merge කරලා checkout page එකට direct කරනවා
+    upsertCartItem(product, quantity);
+    router.push("/checkout");
   };
 
   // ======================================
@@ -388,7 +410,7 @@ export default function ProductOverview({ id }: Props) {
               <p className={`mt-2 text-xs font-bold ${inStock ? "text-green-600 dark:text-green-400" : "text-red-500"}`}>{inStock ? `In Stock — ${product.stock} available` : "Out of Stock"}</p>
             </div>
 
-            {/* QUANTITY & CART */}
+            {/* QUANTITY */}
             <div className="mb-4 flex items-center gap-2.5">
               <div className="flex h-11 items-center gap-2 rounded-xl border bg-neutral-100 px-3 dark:bg-white/5">
                 <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="transition hover:text-secondary">
@@ -399,17 +421,26 @@ export default function ProductOverview({ id }: Props) {
                   <FaPlus size={10} />
                 </button>
               </div>
+            </div>
 
-              <motion.button onClick={handleAddToCart} disabled={!inStock} whileTap={{ scale: 0.97 }} className="flex h-11 flex-1 items-center justify-center gap-2.5 rounded-xl bg-secondary text-sm font-black text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">
-                {addedToCart ? (
-                  <>
-                    <FaCheckCircle size={14} /> Added to Cart!
-                  </>
-                ) : (
-                  <>
-                    <FaShoppingCart size={14} /> Add to Cart
-                  </>
-                )}
+            {/* ADD TO CART & CHECKOUT */}
+            <div className="mb-4 flex flex-col gap-2.5 sm:flex-row">
+              <motion.button onClick={handleAddToCart} disabled={!inStock} whileTap={{ scale: 0.97 }} className="flex h-11 flex-1 items-center justify-center gap-2.5 rounded-xl border-2 border-secondary bg-white text-sm font-black text-secondary transition hover:bg-secondary/10 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-transparent">
+                <AnimatePresence mode="wait">
+                  {addedToCart ? (
+                    <motion.span key="added" initial={{ y: 6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -6, opacity: 0 }} className="flex items-center gap-2.5">
+                      <FaCheckCircle size={14} /> Added to Cart!
+                    </motion.span>
+                  ) : (
+                    <motion.span key="add" initial={{ y: 6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -6, opacity: 0 }} className="flex items-center gap-2.5">
+                      <FaShoppingCart size={14} /> Add to Cart
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.button>
+
+              <motion.button onClick={handleCheckout} disabled={!inStock || checkoutLoading} whileTap={{ scale: 0.97 }} className="flex h-11 flex-1 items-center justify-center gap-2.5 rounded-xl bg-secondary text-sm font-black text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">
+                <IoBagCheckOutline size={16} /> {checkoutLoading ? "Redirecting..." : "Checkout"}
               </motion.button>
             </div>
 

@@ -206,7 +206,8 @@ export default function ProductCard({ product }: Props) {
         33vw
       "
               className="
-        object-cover
+        object-contain
+        p-3
         transition-transform
         duration-500
         group-hover:scale-105

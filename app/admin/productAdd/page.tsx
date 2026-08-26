@@ -73,15 +73,17 @@ export default function ProductAddPage() {
 
   // =========================
   // SHIPPING & PROTECTION STATES
+  // ✅ Default එක "false" — admin explicitly check කළොත් විතරයි
+  // ඒ product එකට ඒ shipping option එක enable වෙන්නේ.
   // =========================
-  const [priceMatch, setPriceMatch] = useState(true);
-  const [protectionPlan, setProtectionPlan] = useState(true);
+  const [priceMatch, setPriceMatch] = useState(false);
+  const [protectionPlan, setProtectionPlan] = useState(false);
   const [protectionFeePercentage, setProtectionFeePercentage] = useState<number>(6); // 6%
-  const [freeDelivery, setFreeDelivery] = useState(true);
+  const [freeDelivery, setFreeDelivery] = useState(false);
   const [deliveryDaysMin, setDeliveryDaysMin] = useState<number>(3);
   const [deliveryDaysMax, setDeliveryDaysMax] = useState<number>(6);
-  const [pickupAvailable, setPickupAvailable] = useState(true);
-  const [pickupTime, setPickupTime] = useState("24h at our Colombo showroom");
+  const [pickupAvailable, setPickupAvailable] = useState(false);
+  const [pickupTime, setPickupTime] = useState("187/B/1 Colombo Horana Road,Bokundara, Piliyandala Showroom");
 
   // =========================
   // FETCH CATEGORY TREE
@@ -174,6 +176,11 @@ export default function ProductAddPage() {
         }
       }
 
+      // ✅ Admin කිසිම shipping option checkbox එකක් check කරලා නැත්නම්
+      // (සියල්ලම false), shippingOptions object එකම payload එකට එකතු කරන්නේ නෑ.
+      // මේකෙන් backend/database එකට "shippingOptions" field එකම යන්නේ නෑ.
+      const hasAnyShippingOption = priceMatch || protectionPlan || freeDelivery || pickupAvailable;
+
       const productData = {
         name,
         altName: altName ? altName.split(",").map((item) => item.trim()) : [],
@@ -189,17 +196,19 @@ export default function ProductAddPage() {
         specifications: {
           featureData: featureData,
         },
-        // අලුතින් එකතු කළ shipping options
-        shippingOptions: {
-          priceMatch,
-          protectionPlan,
-          protectionFeePercentage: protectionFeePercentage / 100, // 6 -> 0.06 ලෙස Database එකට යැවීම
-          freeDelivery,
-          deliveryDaysMin,
-          deliveryDaysMax,
-          pickupAvailable,
-          pickupTime,
-        },
+        // අලුතින් එකතු කළ shipping options — admin එකක් හෝ on කළොත් විතරයි යවනවා
+        ...(hasAnyShippingOption && {
+          shippingOptions: {
+            priceMatch,
+            protectionPlan,
+            protectionFeePercentage: protectionFeePercentage / 100, // 6 -> 0.06 ලෙස Database එකට යැවීම
+            freeDelivery,
+            deliveryDaysMin,
+            deliveryDaysMax,
+            pickupAvailable,
+            pickupTime,
+          },
+        }),
       };
 
       await axios.post(`${API}/api/products`, productData, {
@@ -224,14 +233,14 @@ export default function ProductAddPage() {
       setStock(0);
       setFeatureData("");
 
-      // RESET SHIPPING OPTIONS
-      setPriceMatch(true);
-      setProtectionPlan(true);
+      // RESET SHIPPING OPTIONS (unchecked ලෙසම reset වෙනවා)
+      setPriceMatch(false);
+      setProtectionPlan(false);
       setProtectionFeePercentage(6);
-      setFreeDelivery(true);
+      setFreeDelivery(false);
       setDeliveryDaysMin(3);
       setDeliveryDaysMax(6);
-      setPickupAvailable(true);
+      setPickupAvailable(false);
       setPickupTime("24h at our Colombo showroom");
     } catch (error) {
       console.error("Product add failed:", error);
@@ -322,7 +331,8 @@ export default function ProductAddPage() {
             SHIPPING & PROTECTION SECTION
             ========================= */}
         <div className="pt-6 border-t border-neutral-200 dark:border-border">
-          <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-6">Shipping & Protection Options</h3>
+          <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-1">Shipping & Protection Options</h3>
+          <p className="text-xs text-neutral-500 dark:text-gray-400 mb-6">Only checked options will be shown on this product&apos;s page.</p>
 
           <div className="grid sm:grid-cols-2 gap-x-6 gap-y-5">
             {/* PRICE MATCH */}
@@ -362,6 +372,7 @@ export default function ProductAddPage() {
                 <span className="text-neutral-400 font-bold">to</span>
                 <input type="number" placeholder="Max" value={deliveryDaysMax} onChange={(e) => setDeliveryDaysMax(Number(e.target.value))} className="w-full h-10 px-3 rounded-xl bg-neutral-50 dark:bg-background border border-neutral-200 dark:border-border dark:text-white outline-none focus:border-secondary transition" />
               </div>
+              <p className="text-[11px] text-neutral-400">Only used when &quot;Free Delivery&quot; is checked above.</p>
             </div>
 
             {/* STORE PICKUP */}
