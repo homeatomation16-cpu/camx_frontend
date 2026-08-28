@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { Toaster } from "react-hot-toast";
 
 const ThemeContext = createContext<{
   theme: string;
@@ -45,7 +46,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <GoogleOAuthProvider clientId={googleClientId}>
-      <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>
+      <ThemeContext.Provider value={{ theme, setTheme }}>
+        {children}
+        <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
+      </ThemeContext.Provider>
     </GoogleOAuthProvider>
   );
 }

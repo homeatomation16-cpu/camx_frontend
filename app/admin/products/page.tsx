@@ -6,6 +6,7 @@ import Image from "next/image";
 import mammoth from "mammoth";
 import { useEffect, useState, useCallback, type ChangeEvent } from "react";
 import axios from "axios";
+import toast from "react-hot-toast";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
@@ -155,6 +156,7 @@ export default function AdminProductsPage() {
     // Update click කළොත් (touch නොකළත්), false values විතරයි save වෙන්නේ.
     const productToEdit = {
       ...product,
+      isAvailable: product.isAvailable ?? true,
       shippingOptions: {
         priceMatch: product.shippingOptions?.priceMatch ?? false,
         protectionPlan: product.shippingOptions?.protectionPlan ?? false,
@@ -177,10 +179,10 @@ export default function AdminProductsPage() {
   // =========================
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     if (!editingProduct) return;
-    const { name, value } = e.target;
+    const { name, value, type } = e.target as HTMLInputElement;
     setEditingProduct({
       ...editingProduct,
-      [name]: name === "price" || name === "labelPrice" || name === "stock" ? Number(value) : value,
+      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : name === "price" || name === "labelPrice" || name === "stock" ? Number(value) : value,
     });
   }
 
@@ -266,7 +268,11 @@ export default function AdminProductsPage() {
         finalImages = uploadedImages;
       }
 
-      const updatePayload = { ...editingProduct, images: finalImages };
+      const updatePayload = {
+        ...editingProduct,
+        images: finalImages,
+        isAvailable: editingProduct.isAvailable ?? true,
+      };
 
       // Category / Brand resolving
       if (typeof updatePayload.category === "object" && updatePayload.category !== null) {
@@ -287,14 +293,14 @@ export default function AdminProductsPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      alert("Product updated successfully");
+      toast.success("Product updated successfully!");
       setEditingProduct(null);
       fetchProducts();
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { message?: string } }; message?: string };
       console.error("Update Error:", axiosError.response?.data || axiosError.message);
       const errorMsg = axiosError.response?.data?.message || "Failed to update product. Check console for details.";
-      alert(`Error: ${errorMsg}`);
+      toast.error(`Error: ${errorMsg}`);
       setFiles([]);
       setImagePreviews([]);
       fetchProducts();
@@ -307,7 +313,7 @@ export default function AdminProductsPage() {
   // DELETE PRODUCT
   // =========================
   async function handleDelete(productId: string) {
-    const confirmDelete = confirm("Delete this product?");
+    const confirmDelete = confirm("Are you sure you want to delete this product?");
     if (!confirmDelete) return;
 
     try {
@@ -315,9 +321,11 @@ export default function AdminProductsPage() {
       await axios.delete(`${API}/api/products/${productId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      toast.success("Product deleted successfully!");
       fetchProducts();
     } catch (error) {
       console.log(error);
+      toast.error("Failed to delete product. Please try again.");
     }
   }
 
@@ -337,34 +345,66 @@ export default function AdminProductsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* NAME */}
-              <input type="text" name="name" value={editingProduct.name || ""} onChange={handleChange} placeholder="Product Name" className="h-12 px-4 rounded-xl border border-border bg-background outline-none" />
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Product Name *</label>
+                <input type="text" name="name" value={editingProduct.name || ""} onChange={handleChange} placeholder="Product Name" className="w-full h-12 px-4 rounded-xl border border-border bg-background outline-none focus:border-secondary transition" />
+              </div>
 
               {/* CATEGORY DROPDOWN */}
-              <select name="category" value={typeof editingProduct.category === "object" ? editingProduct.category?._id || "" : editingProduct.category || ""} onChange={handleChange} disabled={categoriesLoading || categoryOptions.length === 0} className="h-12 px-4 rounded-xl border border-border bg-background outline-none appearance-none cursor-pointer disabled:opacity-50">
-                <option value="" disabled>
-                  {categoriesLoading ? "Loading categories..." : "Select a Category"}
-                </option>
-                {categoryOptions.map((opt) => (
-                  <option key={opt._id} value={opt._id} disabled={!opt.isActive}>
-                    {opt.label} {!opt.isActive && "(inactive)"}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Category *</label>
+                <select name="category" value={typeof editingProduct.category === "object" ? editingProduct.category?._id || "" : categoryOptions.find((opt) => opt._id === editingProduct.category || opt.label.replace(/^—+\s*/, "") === editingProduct.category)?._id || editingProduct.category || ""} onChange={handleChange} disabled={categoriesLoading || categoryOptions.length === 0} className="w-full h-12 px-4 rounded-xl border border-border bg-background outline-none appearance-none cursor-pointer disabled:opacity-50 focus:border-secondary transition">
+                  <option value="" disabled>
+                    {categoriesLoading ? "Loading categories..." : "Select a Category"}
                   </option>
-                ))}
-              </select>
+                  {categoryOptions.map((opt) => (
+                    <option key={opt._id} value={opt._id} disabled={!opt.isActive}>
+                      {opt.label} {!opt.isActive && "(inactive)"}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               {/* BRAND */}
-              <input type="text" name="brand" value={typeof editingProduct.brand === "object" ? editingProduct.brand?.name || "" : editingProduct.brand || ""} onChange={handleChange} placeholder="Brand" className="h-12 px-4 rounded-xl border border-border bg-background outline-none" />
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Brand</label>
+                <input type="text" name="brand" value={typeof editingProduct.brand === "object" ? editingProduct.brand?.name || "" : editingProduct.brand || ""} onChange={handleChange} placeholder="Brand Name" className="w-full h-12 px-4 rounded-xl border border-border bg-background outline-none focus:border-secondary transition" />
+              </div>
 
               {/* PRICE */}
-              <input type="number" name="price" value={editingProduct.price || 0} onChange={handleChange} placeholder="Price" className="h-12 px-4 rounded-xl border border-border bg-background outline-none" />
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Price (Rs.) *</label>
+                <input type="number" name="price" value={editingProduct.price || 0} onChange={handleChange} placeholder="Price" className="w-full h-12 px-4 rounded-xl border border-border bg-background outline-none focus:border-secondary transition" />
+              </div>
 
               {/* LABEL PRICE */}
-              <input type="number" name="labelPrice" value={editingProduct.labelPrice || 0} onChange={handleChange} placeholder="Label Price" className="h-12 px-4 rounded-xl border border-border bg-background outline-none" />
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Label / Original Price (Rs.)</label>
+                <input type="number" name="labelPrice" value={editingProduct.labelPrice || 0} onChange={handleChange} placeholder="Label Price" className="w-full h-12 px-4 rounded-xl border border-border bg-background outline-none focus:border-secondary transition" />
+              </div>
 
               {/* STOCK */}
-              <input type="number" name="stock" value={editingProduct.stock || 0} onChange={handleChange} placeholder="Stock" className="h-12 px-4 rounded-xl border border-border bg-background outline-none" />
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Stock Quantity *</label>
+                <input type="number" name="stock" value={editingProduct.stock || 0} onChange={handleChange} placeholder="Stock" className="w-full h-12 px-4 rounded-xl border border-border bg-background outline-none focus:border-secondary transition" />
+              </div>
 
               {/* DESCRIPTION */}
-              <textarea name="description" value={editingProduct.description || ""} onChange={handleChange} rows={5} placeholder="Description" className="md:col-span-2 p-4 rounded-2xl border border-border bg-background outline-none" />
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Product Description</label>
+                <textarea name="description" value={editingProduct.description || ""} onChange={handleChange} rows={5} placeholder="Product Description..." className="w-full p-4 rounded-2xl border border-border bg-background outline-none focus:border-secondary transition" />
+              </div>
+
+              {/* AVAILABILITY STATUS */}
+              <div className="md:col-span-2 p-4 rounded-2xl bg-neutral-50 dark:bg-neutral-900 border border-border">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" name="isAvailable" checked={editingProduct.isAvailable ?? true} onChange={handleChange} className="w-5 h-5 accent-secondary cursor-pointer" />
+                  <div>
+                    <span className="text-sm font-bold">Product is Available / Active</span>
+                    <p className="text-xs text-muted-foreground">When checked, customers can view and purchase this product in the store.</p>
+                  </div>
+                </label>
+              </div>
 
               {/* =========================
                   SHIPPING & PROTECTION SECTION
@@ -483,30 +523,38 @@ export default function AdminProductsPage() {
 
       {/* PRODUCTS GRID */}
       {loading ? (
-        <div className="py-20 text-center">Loading...</div>
+        <div className="py-20 text-center text-muted-foreground">Loading products...</div>
+      ) : products.length === 0 ? (
+        <div className="py-20 text-center text-muted-foreground">No products found.</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4">
           {products.map((product) => (
-            <div key={product.productId || product._id} className="overflow-hidden rounded-3xl border border-border bg-card">
-              <div className="relative w-full h-60">
-                <Image src={product.images?.[0] || "/placeholder-image.jpg"} alt={product.name || "Product Image"} fill unoptimized loading="eager" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" />
-              </div>
-
-              <div className="p-5">
-                <h2 className="text-xl font-black">{product.name}</h2>
-                <p className="mt-2 text-sm text-muted-foreground">{typeof product.category === "object" ? product.category?.name || "Unknown Category" : product.category || "Unknown Category"}</p>
-
-                <div className="mt-4">
-                  <p className="text-2xl font-black">Rs. {product.price?.toLocaleString()}</p>
-                  <p className="text-sm text-muted-foreground">Stock: {product.stock}</p>
+            <div key={product.productId || product._id} className="flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card hover:shadow-md transition-shadow">
+              <div>
+                <div className="relative w-full h-28 sm:h-32 bg-neutral-100 dark:bg-neutral-900">
+                  <Image src={product.images?.[0] || "/placeholder-image.jpg"} alt={product.name || "Product Image"} fill unoptimized loading="eager" sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw" className="object-cover" />
                 </div>
 
-                <div className="flex gap-3 mt-6">
-                  <button onClick={() => handleEditClick(product)} className="flex-1 h-11 rounded-xl bg-secondary text-white font-bold">
+                <div className="p-3 sm:p-3.5">
+                  <h2 className="text-sm font-bold truncate text-foreground" title={product.name}>
+                    {product.name}
+                  </h2>
+                  <p className="mt-0.5 text-xs text-muted-foreground truncate">{typeof product.category === "object" ? product.category?.name || "Unknown Category" : product.category || "Unknown Category"}</p>
+
+                  <div className="mt-2 flex items-baseline justify-between gap-1 flex-wrap">
+                    <p className="text-sm sm:text-base font-extrabold text-foreground">Rs. {product.price?.toLocaleString()}</p>
+                    <span className={`text-[11px] px-1.5 py-0.5 rounded-md font-medium ${(product.stock ?? 0) > 0 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-red-500/10 text-red-600 dark:text-red-400"}`}>Stock: {product.stock}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 sm:p-3.5 pt-0">
+                <div className="flex gap-2">
+                  <button onClick={() => handleEditClick(product)} className="flex-1 h-8 rounded-lg bg-secondary text-white text-xs font-bold hover:opacity-90 transition">
                     Update
                   </button>
 
-                  <button onClick={() => handleDelete(product.productId)} className="flex-1 h-11 rounded-xl border border-red-500 text-red-500 font-bold">
+                  <button onClick={() => handleDelete(product.productId)} className="flex-1 h-8 rounded-lg border border-red-500/50 text-red-500 text-xs font-bold hover:bg-red-500/10 transition">
                     Delete
                   </button>
                 </div>

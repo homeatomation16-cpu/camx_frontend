@@ -4,6 +4,7 @@ import axios from "axios";
 import Image from "next/image";
 import mammoth from "mammoth";
 import { ChangeEvent, FormEvent, useState, useEffect } from "react";
+import toast from "react-hot-toast";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
@@ -46,6 +47,51 @@ function flattenCategoryTree(nodes: CategoryNode[]): CategoryOption[] {
   return options;
 }
 
+// =========================
+// SPEC FILE PARSING HELPERS
+// (DOCX / PDF / TXT / MD -> HTML)
+// =========================
+
+function escapeHtml(str: string) {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// Plain text (from .txt/.md files or pasted text) -> simple <p> HTML,
+// same shape mammoth would give us, so the rest of the pipeline
+// (featureData -> Specifications + About highlights) doesn't change.
+function textToHtml(text: string): string {
+  return text
+    .split(/\n{1,}/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => `<p>${escapeHtml(line)}</p>`)
+    .join("");
+}
+
+// PDF -> HTML using pdfjs-dist (loaded dynamically, client-side only).
+// Requires: npm install pdfjs-dist
+async function extractPdfAsHtml(file: File): Promise<string> {
+  const pdfjsLib = await import("pdfjs-dist");
+  // Use the CDN worker that matches the installed pdfjs-dist version
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+  const pageTexts: string[] = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pageText = content.items.map((item: any) => item.str).join(" ");
+    pageTexts.push(pageText);
+  }
+
+  return textToHtml(pageTexts.join("\n\n"));
+}
+
+const ACCEPTED_SPEC_EXTENSIONS = ["docx", "pdf", "txt", "md"];
+
 export default function ProductAddPage() {
   // =========================
   // STATES
@@ -66,10 +112,15 @@ export default function ProductAddPage() {
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [stock, setStock] = useState<number>(0);
-  const [isAvailable] = useState(true);
+  const [isAvailable, setIsAvailable] = useState(true);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [featureData, setFeatureData] = useState("");
+
+  // Spec input mode: upload a file OR paste text directly
+  const [specMode, setSpecMode] = useState<"file" | "paste">("file");
+  const [specParsing, setSpecParsing] = useState(false);
+  const [pasteText, setPasteText] = useState("");
 
   // =========================
   // SHIPPING & PROTECTION STATES
@@ -124,27 +175,68 @@ export default function ProductAddPage() {
   };
 
   // =========================
-  // DOCX IMPORT
+  // SPEC FILE IMPORT (DOCX / PDF / TXT / MD)
   // =========================
-  const handleDocxUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handleSpecFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+
+    if (!ACCEPTED_SPEC_EXTENSIONS.includes(ext)) {
+      setMessage("❌ Unsupported file type. Please upload a DOCX, PDF, TXT or MD file.");
+      e.target.value = "";
+      return;
+    }
+
+    setSpecParsing(true);
+    setMessage("");
+
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const result = await mammoth.convertToHtml({ arrayBuffer });
-      const html = result.value;
+      let html = "";
+
+      if (ext === "docx") {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.convertToHtml({ arrayBuffer });
+        html = result.value;
+      } else if (ext === "pdf") {
+        html = await extractPdfAsHtml(file);
+      } else {
+        // txt / md
+        const text = await file.text();
+        html = textToHtml(text);
+      }
 
       if (html) {
         setFeatureData(html);
-        setMessage("✅ DOCX template imported successfully!");
+        setMessage(`✅ Specification imported from .${ext} file!`);
       } else {
-        setMessage("❌ No content found in the document.");
+        setMessage("❌ No readable content found in the file.");
       }
     } catch (error) {
       console.error(error);
-      setMessage("❌ Failed to parse DOCX file.");
+      setMessage(`❌ Failed to parse the ${ext.toUpperCase()} file.`);
+    } finally {
+      setSpecParsing(false);
+      e.target.value = "";
     }
+  };
+
+  // Pasted plain text -> becomes the same featureData/HTML the file upload produces
+  const handleUsePastedText = () => {
+    if (!pasteText.trim()) {
+      setMessage("❌ Paste some specification text first.");
+      return;
+    }
+    const html = textToHtml(pasteText);
+    setFeatureData(html);
+    setMessage("✅ Specification text added!");
+  };
+
+  const clearSpecification = () => {
+    setFeatureData("");
+    setPasteText("");
+    setMessage("");
   };
 
   // =========================
@@ -218,6 +310,7 @@ export default function ProductAddPage() {
       });
 
       setMessage("✅ Product added successfully!");
+      toast.success("Product added successfully!");
 
       // RESET FORM
       setName("");
@@ -231,7 +324,10 @@ export default function ProductAddPage() {
       setBrand("");
       setModel("");
       setStock(0);
+      setIsAvailable(true);
       setFeatureData("");
+      setPasteText("");
+      setSpecMode("file");
 
       // RESET SHIPPING OPTIONS (unchecked ලෙසම reset වෙනවා)
       setPriceMatch(false);
@@ -246,23 +342,24 @@ export default function ProductAddPage() {
       console.error("Product add failed:", error);
       const apiMessage = axios.isAxiosError(error) && error.response?.data?.message ? error.response.data.message : "Failed to add product.";
       setMessage(`❌ ${apiMessage}`);
+      toast.error(apiMessage);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="p-6 sm:p-8 md:p-12 max-w-4xl mx-auto w-full transition-colors duration-300">
+    <div className="p-4 sm:p-6 md:p-12 max-w-4xl mx-auto w-full transition-colors duration-300">
       {/* HEADER */}
-      <div className="mb-10">
-        <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-neutral-900 dark:text-white">
+      <div className="mb-8 sm:mb-10">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-neutral-900 dark:text-white">
           Add <span className="text-secondary">Product</span>
         </h1>
         <p className="text-neutral-500 dark:text-gray-400 mt-2 text-sm">Add CCTV and security products to CAMX.lk store database.</p>
       </div>
 
       {/* FORM */}
-      <form onSubmit={handleAddProduct} className="bg-white dark:bg-card border border-neutral-200 dark:border-border rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm transition-colors duration-300">
+      <form onSubmit={handleAddProduct} className="bg-white dark:bg-card border border-neutral-200 dark:border-border rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 space-y-6 shadow-sm transition-colors duration-300">
         {/* NAME */}
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-gray-400 mb-2">Product Name *</label>
@@ -282,7 +379,7 @@ export default function ProductAddPage() {
         </div>
 
         {/* PRICES */}
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-gray-400 mb-2">Selling Price *</label>
             <input type="number" required value={price || ""} onChange={(e) => setPrice(Number(e.target.value))} className="w-full h-14 px-5 rounded-2xl bg-neutral-50 dark:bg-background border border-neutral-200 dark:border-border dark:text-white outline-none focus:border-secondary transition" />
@@ -294,7 +391,7 @@ export default function ProductAddPage() {
         </div>
 
         {/* CATEGORY + BRAND */}
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-gray-400 mb-2">Category *</label>
             <select required value={category} onChange={(e) => setCategory(e.target.value)} disabled={categoriesLoading || categoryOptions.length === 0} className="w-full h-14 px-5 rounded-2xl bg-neutral-50 dark:bg-background border border-neutral-200 dark:border-border text-neutral-900 dark:text-white outline-none focus:border-secondary transition appearance-none cursor-pointer disabled:opacity-50">
@@ -315,8 +412,8 @@ export default function ProductAddPage() {
           </div>
         </div>
 
-        {/* MODEL + STOCK */}
-        <div className="grid sm:grid-cols-2 gap-4">
+        {/* MODEL + STOCK + AVAILABILITY */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-gray-400 mb-2">Model</label>
             <input type="text" value={model} onChange={(e) => setModel(e.target.value)} className="w-full h-14 px-5 rounded-2xl bg-neutral-50 dark:bg-background border border-neutral-200 dark:border-border dark:text-white outline-none focus:border-secondary transition" />
@@ -327,6 +424,11 @@ export default function ProductAddPage() {
           </div>
         </div>
 
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" checked={isAvailable} onChange={(e) => setIsAvailable(e.target.checked)} className="w-5 h-5 accent-secondary cursor-pointer" />
+          <span className="text-sm font-semibold text-neutral-700 dark:text-gray-300">Product is available/active</span>
+        </label>
+
         {/* =========================
             SHIPPING & PROTECTION SECTION
             ========================= */}
@@ -334,7 +436,7 @@ export default function ProductAddPage() {
           <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-1">Shipping & Protection Options</h3>
           <p className="text-xs text-neutral-500 dark:text-gray-400 mb-6">Only checked options will be shown on this product&apos;s page.</p>
 
-          <div className="grid sm:grid-cols-2 gap-x-6 gap-y-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
             {/* PRICE MATCH */}
             <label className="flex items-center gap-3 cursor-pointer">
               <input type="checkbox" checked={priceMatch} onChange={(e) => setPriceMatch(e.target.checked)} className="w-5 h-5 accent-secondary cursor-pointer" />
@@ -397,7 +499,7 @@ export default function ProductAddPage() {
           <label className="block text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-gray-400 mb-2">Product Images *</label>
           <input type="file" multiple accept="image/*" onChange={handleFileChange} className="block w-full text-sm text-neutral-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-neutral-100 file:text-neutral-700 cursor-pointer" />
           {imagePreviews.length > 0 && (
-            <div className="grid grid-cols-4 gap-4 mt-4">
+            <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 gap-3 sm:gap-4 mt-4">
               {imagePreviews.map((url, i) => (
                 <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-neutral-200 dark:border-border">
                   <Image src={url} alt="preview" fill unoptimized loading="lazy" sizes="200px" className="object-cover" />
@@ -407,21 +509,47 @@ export default function ProductAddPage() {
           )}
         </div>
 
-        {/* DOCX TECHNICAL SPECIFICATIONS */}
+        {/* SPECIFICATIONS: FILE UPLOAD (DOCX/PDF/TXT/MD) OR PASTE TEXT */}
         <div className="pt-6 border-t border-neutral-200 dark:border-border">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h3 className="text-lg font-bold text-neutral-900 dark:text-white">Technical Specifications (Template)</h3>
-              <p className="text-xs text-neutral-500 dark:text-gray-400 mt-1">Upload DOCX specification sheet to preserve original tables and formatting.</p>
+          <div className="mb-4">
+            <h3 className="text-lg font-bold text-neutral-900 dark:text-white">Technical Specifications</h3>
+            <p className="text-xs text-neutral-500 dark:text-gray-400 mt-1">Upload a DOCX, PDF, or TXT/MD spec sheet — or paste the text directly. This becomes the product&apos;s specification content and also powers the highlights shown in the &quot;About&quot; section on the product page.</p>
+          </div>
+
+          {/* MODE SWITCH */}
+          <div className="flex justify-between xs:flex-row gap-2 mb-4">
+            <button type="button" onClick={() => setSpecMode("file")} className={`flex-1 h-11 rounded-xl text-sm font-bold border transition ${specMode === "file" ? "bg-secondary text-white border-secondary" : "bg-neutral-50 dark:bg-background text-neutral-600 dark:text-gray-300 border-neutral-200 dark:border-border"}`}>
+              Upload File
+            </button>
+            <button type="button" onClick={() => setSpecMode("paste")} className={`flex-1 h-11 rounded-xl text-sm font-bold border transition ${specMode === "paste" ? "bg-secondary text-white border-secondary" : "bg-neutral-50 dark:bg-background text-neutral-600 dark:text-gray-300 border-neutral-200 dark:border-border"}`}>
+              Paste Text
+            </button>
+          </div>
+
+          {specMode === "file" ? (
+            <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-dashed border-neutral-300 dark:border-border bg-neutral-50 dark:bg-background">
+              <input type="file" accept=".docx,.pdf,.txt,.md" onChange={handleSpecFileUpload} disabled={specParsing} className="block w-full text-sm text-neutral-500 file:mr-4 file:py-3 file:px-5 file:rounded-2xl file:border-0 file:text-sm file:font-bold file:bg-secondary file:text-white hover:file:opacity-90 file:cursor-pointer disabled:opacity-50" />
+              <p className="text-[11px] text-neutral-400 mt-2">Accepted: .docx, .pdf, .txt, .md</p>
+              {specParsing && <p className="text-xs font-semibold text-secondary mt-3">Parsing file…</p>}
             </div>
-          </div>
-          <div className="p-6 rounded-3xl border border-dashed border-neutral-300 dark:border-border bg-neutral-50 dark:bg-background">
-            <input type="file" accept=".docx" onChange={handleDocxUpload} className="block w-full text-sm text-neutral-500 file:mr-4 file:py-3 file:px-5 file:rounded-2xl file:border-0 file:text-sm file:font-bold file:bg-secondary file:text-white hover:file:opacity-90 file:cursor-pointer" />
-          </div>
+          ) : (
+            <div className="space-y-3">
+              <textarea rows={6} value={pasteText} onChange={(e) => setPasteText(e.target.value)} placeholder={"Paste specification text here, one point per line, e.g.\n3MP Super HD Resolution\n360° Panoramic Coverage\nSmart Human Detection"} className="w-full p-4 sm:p-5 rounded-2xl bg-neutral-50 dark:bg-background border border-neutral-200 dark:border-border text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-gray-500 resize-none outline-none focus:border-secondary transition" />
+              <button type="button" onClick={handleUsePastedText} className="w-full sm:w-auto h-11 px-6 rounded-xl bg-secondary text-white text-sm font-bold hover:opacity-90 transition">
+                Use This Text
+              </button>
+            </div>
+          )}
+
           {featureData && (
-            <div className="mt-6 space-y-4">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-neutral-500 dark:text-gray-400">Template Preview</h4>
-              <div className="p-6 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-border overflow-x-auto">
+            <div className="mt-6 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-bold uppercase tracking-wider text-neutral-500 dark:text-gray-400">Preview</h4>
+                <button type="button" onClick={clearSpecification} className="text-xs font-bold text-red-500 hover:underline">
+                  Clear
+                </button>
+              </div>
+              <div className="p-4 sm:p-6 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-border overflow-x-auto">
                 <div className="prose prose-sm max-w-none prose-table:w-full prose-table:border prose-table:border-collapse prose-td:border prose-th:border prose-td:p-3 prose-th:p-3 prose-th:bg-neutral-100 dark:prose-invert dark:prose-th:bg-neutral-800" dangerouslySetInnerHTML={{ __html: featureData }} />
               </div>
             </div>
