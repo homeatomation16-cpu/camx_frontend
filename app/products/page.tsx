@@ -9,19 +9,47 @@ import ProductCard from "@/app/components/ProductCard";
 import ProductsSidebar from "@/app/components/ProductsSidebar";
 import PriceRangeSlider from "@/app/components/PriceRangeSlider";
 
-const API = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
-const MAX_PRICE = 100000;
+const API = process.env.NEXT_PUBLIC_API_BASE;
+const DEFAULT_MAX_PRICE = 500000;
 
 // Backend eken category/brand string ekak vidihata witharak nemei —
 // { _id, name, slug } object ekak vidihatath enna puluwan (populated reference).
-// Object ekama key ekak/label ekak vidihata use kalahot "[object Object]"
-// widihata stringify wenawa — eka thamai sidebar eke penune bug eka.
 type CategoryOrBrand = string | { _id?: string; name?: string; slug?: string } | null | undefined;
 
-function displayName(value: CategoryOrBrand): string {
+type CategoryNode = {
+  _id: string;
+  name: string;
+  slug: string;
+  level?: number;
+  isActive?: boolean;
+  children?: CategoryNode[];
+};
+
+function flattenCategoryMap(nodes: CategoryNode[]): Map<string, string> {
+  const map = new Map<string, string>();
+  const walk = (list: CategoryNode[]) => {
+    for (const node of list) {
+      if (node._id) map.set(node._id, node.name);
+      if (node.slug) map.set(node.slug, node.name);
+      if (node.children && node.children.length > 0) {
+        walk(node.children);
+      }
+    }
+  };
+  walk(nodes);
+  return map;
+}
+
+function resolveDisplayName(value: CategoryOrBrand, categoryMap?: Map<string, string>): string {
   if (!value) return "";
   if (typeof value === "object") return value.name ?? value.slug ?? "";
-  return value;
+  if (typeof value === "string") {
+    if (categoryMap && categoryMap.has(value)) {
+      return categoryMap.get(value) || value;
+    }
+    return value;
+  }
+  return String(value);
 }
 
 type CatalogProduct = {
@@ -68,6 +96,7 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<CatalogProduct[]>([]);
+  const [categoryMap, setCategoryMap] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -75,30 +104,52 @@ export default function ProductsPage() {
   const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState("default");
   const [openCategory, setOpenCategory] = useState<string | null>(null);
-  const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(MAX_PRICE);
 
-  // FETCH PRODUCTS & RATINGS
+  const [sliderMax, setSliderMax] = useState(DEFAULT_MAX_PRICE);
+  const [minPrice, setMinPrice] = useState(0);
+  const [maxPrice, setMaxPrice] = useState(DEFAULT_MAX_PRICE);
+
+  // FETCH PRODUCTS, CATEGORIES & RATINGS
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true);
 
-        // 1. මුලින්ම Products සියල්ල ලබා ගැනීම
-        const productsRes = await axios.get(`${API}/api/products`);
-        const fetchedProducts = productsRes.data.products || productsRes.data || [];
+        // 1. Categories සහ Products parallel fetch කිරීම
+        const [productsResult, categoriesResult] = await Promise.allSettled([axios.get(`${API}/api/products`), axios.get(`${API}/api/categories/tree`)]);
+
+        let catMap = new Map<string, string>();
+        if (categoriesResult.status === "fulfilled" && Array.isArray(categoriesResult.value.data)) {
+          catMap = flattenCategoryMap(categoriesResult.value.data);
+          setCategoryMap(catMap);
+        }
+
+        let fetchedProducts: CatalogProduct[] = [];
+        if (productsResult.status === "fulfilled") {
+          const resData = productsResult.value.data;
+          fetchedProducts = resData.products || resData || [];
+        }
+
+        // Calculate dynamic maximum price
+        const highestPrice = fetchedProducts.reduce((max: number, p: CatalogProduct) => {
+          const pr = Number(p.price) || 0;
+          return pr > max ? pr : max;
+        }, 0);
+        const dynamicMax = Math.max(Math.ceil(highestPrice / 10000) * 10000, DEFAULT_MAX_PRICE);
+        setSliderMax(dynamicMax);
+        setMaxPrice(dynamicMax);
 
         // 2. ලබාගත් හැම Product එකක් සඳහාම අදාල Reviews ලබාගෙන Rating එක ගණනය කිරීම
         const productsWithRatings = await Promise.all(
           fetchedProducts.map(async (p: CatalogProduct) => {
+            const prodId = p._id || p.productId;
+            if (!prodId) {
+              return { ...p, rating: 0, reviews: 0 };
+            }
             try {
-              const reviewRes = await axios.get(`${API}/api/reviews/product/${p._id}`);
+              const reviewRes = await axios.get(`${API}/api/reviews/product/${prodId}`);
               const productReviews = reviewRes.data.reviews || [];
-
-              // Reviews ගණන
               const reviewCount = productReviews.length;
-
-              // සාමාන්‍ය (Average) Rating එක ගණනය කිරීම (any ඉවත් කර නිවැරදි type එක ලබා දීම)
               const totalRating = productReviews.reduce((sum: number, rev: { rating?: number }) => sum + (rev.rating || 0), 0);
               const avgRating = reviewCount > 0 ? totalRating / reviewCount : 0;
 
@@ -107,9 +158,7 @@ export default function ProductsPage() {
                 rating: avgRating,
                 reviews: reviewCount,
               };
-              // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            } catch (_err) {
-              // Reviews ගන්න බැරි වුනොත් 0 විදිහට සලකන්න (unused 'err' ඉවත් කිරීම)
+            } catch {
               return {
                 ...p,
                 rating: 0,
@@ -134,7 +183,7 @@ export default function ProductsPage() {
   const categoryTree = useMemo(() => {
     const tree: Record<string, string[]> = {};
     products.forEach((p) => {
-      const cat = displayName(p.category) || "Other";
+      const cat = resolveDisplayName(p.category, categoryMap) || "Other";
       const sub = p.subcategory || "General";
       if (!tree[cat]) {
         tree[cat] = [];
@@ -144,10 +193,10 @@ export default function ProductsPage() {
       }
     });
     return tree;
-  }, [products]);
+  }, [products, categoryMap]);
 
   /* BRANDS */
-  const brands = useMemo(() => [...new Set(products.map((p) => p.brand || "Other"))], [products]);
+  const brands = useMemo(() => [...new Set(products.map((p) => resolveDisplayName(p.brand, categoryMap) || "Other"))], [products, categoryMap]);
 
   function toggleBrand(brand: string) {
     setSelectedBrands((prev) => {
@@ -167,7 +216,7 @@ export default function ProductsPage() {
     setSelectedSubcategory(null);
     setSelectedBrands(new Set());
     setMinPrice(0);
-    setMaxPrice(MAX_PRICE);
+    setMaxPrice(sliderMax);
     setSortBy("default");
   }
 
@@ -199,42 +248,44 @@ export default function ProductsPage() {
       }),
     );
 
-    if (minPrice > 0 || maxPrice < MAX_PRICE) {
+    if (minPrice > 0 || maxPrice < sliderMax) {
       chips.push({
         label: `Rs ${minPrice.toLocaleString()} - Rs ${maxPrice.toLocaleString()}`,
         onRemove: () => {
           setMinPrice(0);
-          setMaxPrice(MAX_PRICE);
+          setMaxPrice(sliderMax);
         },
       });
     }
 
     return chips;
-  }, [selectedCategory, selectedSubcategory, selectedBrands, minPrice, maxPrice]);
+  }, [selectedCategory, selectedSubcategory, selectedBrands, minPrice, maxPrice, sliderMax]);
 
   /* FILTERED */
   const filteredProducts = useMemo(() => {
     let result = products.filter((p) => {
-      const catName = displayName(p.category) || "Other";
-      const brandName = displayName(p.brand) || "Other";
-      const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
+      const catName = resolveDisplayName(p.category, categoryMap) || "Other";
+      const brandName = resolveDisplayName(p.brand, categoryMap) || "Other";
+      const matchSearch = (p.name || "").toLowerCase().includes(search.toLowerCase());
       const matchCat = selectedCategory === "All" || catName === selectedCategory;
       const matchSub = !selectedSubcategory || p.subcategory === selectedSubcategory;
       const matchBrand = selectedBrands.size === 0 || selectedBrands.has(brandName);
-      const matchPrice = p.price >= minPrice && p.price <= maxPrice;
+
+      const priceNum = Number(p.price) || 0;
+      const matchPrice = priceNum >= minPrice && (maxPrice >= sliderMax || priceNum <= maxPrice);
 
       return matchSearch && matchCat && matchSub && matchBrand && matchPrice;
     });
 
     if (sortBy === "priceLow") {
-      result = [...result].sort((a, b) => a.price - b.price);
+      result = [...result].sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
     }
     if (sortBy === "priceHigh") {
-      result = [...result].sort((a, b) => b.price - a.price);
+      result = [...result].sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
     }
 
     return result;
-  }, [products, search, selectedCategory, selectedSubcategory, selectedBrands, minPrice, maxPrice, sortBy]);
+  }, [products, categoryMap, search, selectedCategory, selectedSubcategory, selectedBrands, minPrice, maxPrice, sliderMax, sortBy]);
 
   // SIDEBAR
   const sidebarContent = (
@@ -244,7 +295,7 @@ export default function ProductsPage() {
         <h3 className="mb-4 text-[11px] font-black uppercase tracking-widest text-neutral-400">Price Range</h3>
         <PriceRangeSlider
           min={0}
-          max={MAX_PRICE}
+          max={sliderMax}
           minVal={minPrice}
           maxVal={maxPrice}
           onChange={(min, max) => {
@@ -343,8 +394,8 @@ export default function ProductsPage() {
               <motion.div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
                 <AnimatePresence initial={false} mode="popLayout">
                   {filteredProducts.map((product) => (
-                    <motion.div key={product._id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }}>
-                      <ProductCard product={{ ...product, category: displayName(product.category) }} />
+                    <motion.div key={product._id || product.productId || product.name} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }}>
+                      <ProductCard product={{ ...product, price: Number(product.price) || 0, category: resolveDisplayName(product.category, categoryMap) }} />
                     </motion.div>
                   ))}
                 </AnimatePresence>

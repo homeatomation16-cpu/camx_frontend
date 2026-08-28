@@ -424,7 +424,7 @@ export default function ProductOverview({ id }: Props) {
             </div>
 
             {/* ADD TO CART & CHECKOUT */}
-            <div className="mb-4 flex flex-col gap-2.5 sm:flex-row">
+            <div className="mb-4 flex flex-row gap-2.5 ">
               <motion.button onClick={handleAddToCart} disabled={!inStock} whileTap={{ scale: 0.97 }} className="flex h-11 flex-1 items-center justify-center gap-2.5 rounded-xl border-2 border-secondary bg-white text-sm font-black text-secondary transition hover:bg-secondary/10 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-transparent">
                 <AnimatePresence mode="wait">
                   {addedToCart ? (

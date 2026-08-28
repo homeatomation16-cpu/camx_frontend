@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
+import toast from "react-hot-toast";
 
 const API = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
 
@@ -187,13 +188,13 @@ export default function ProductEditPage() {
         },
       });
 
-      alert("Product updated successfully");
+      toast.success("Product updated successfully!");
 
       router.push("/admin/inventory");
     } catch (error) {
       console.error("Failed to update product:", error);
 
-      alert("Failed to update product");
+      toast.error("Failed to update product");
     } finally {
       setIsSaving(false);
     }

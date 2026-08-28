@@ -129,7 +129,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // ======================================
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-background text-neutral-900 dark:text-white flex overflow-hidden">
+    <div className="min-h-screen bg-neutral-50 dark:bg-background text-neutral-900 dark:text-white flex">
       {/* ====================================== */}
       {/* MOBILE TOPBAR */}
       {/* ====================================== */}
@@ -203,7 +203,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* ====================================== */}
 
       <div className="flex-1 lg:ml-72 min-w-0">
-        <main className="min-h-screen pt-16 lg:pt-0 overflow-x-hidden">{children}</main>
+        <main className="min-h-screen pt-16 lg:pt-0 overflow-x-hidden overflow-y-auto">{children}</main>
       </div>
     </div>
   );
