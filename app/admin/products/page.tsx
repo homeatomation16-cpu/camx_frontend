@@ -131,6 +131,7 @@ export default function AdminProductsPage() {
           Authorization: `Bearer ${token}`,
         },
       });
+
       setProducts(res.data);
     } catch (error) {
       console.log(error);
@@ -142,35 +143,6 @@ export default function AdminProductsPage() {
   useEffect(() => {
     void fetchProducts();
   }, [fetchProducts]);
-
-  // =========================
-  // HANDLE EDIT CLICK
-  // =========================
-  function handleEditClick(product: Product) {
-    // Database එකෙන් එන 0.06 වගේ අගයක් UI එකට 6 ලෙස පරිවර්තනය කිරීම
-    const feePercentage = product.shippingOptions?.protectionFeePercentage ? Math.round(product.shippingOptions.protectionFeePercentage * 100) : 6;
-
-    // ✅ "?? true" වෙනුවට "?? false" — product එකට මේ options කලින්
-    // set කරලා නැත්නම් edit modal එකේත් unchecked ලෙසම පේනවා. admin
-    // Update click කළොත් (touch නොකළත්), false values විතරයි save වෙන්නේ.
-    const productToEdit = {
-      ...product,
-      shippingOptions: {
-        priceMatch: product.shippingOptions?.priceMatch ?? false,
-        protectionPlan: product.shippingOptions?.protectionPlan ?? false,
-        protectionFeePercentage: feePercentage,
-        freeDelivery: product.shippingOptions?.freeDelivery ?? false,
-        deliveryDaysMin: product.shippingOptions?.deliveryDaysMin ?? 3,
-        deliveryDaysMax: product.shippingOptions?.deliveryDaysMax ?? 6,
-        pickupAvailable: product.shippingOptions?.pickupAvailable ?? false,
-        pickupTime: product.shippingOptions?.pickupTime ?? "187/B/1 Colombo Horana Road,Bokundara, Piliyandala Showroom",
-      },
-    };
-
-    setEditingProduct(productToEdit);
-    setImagePreviews(product.images || []);
-    setFiles([]);
-  }
 
   // =========================
   // HANDLE INPUT CHANGE
@@ -185,39 +157,12 @@ export default function AdminProductsPage() {
   }
 
   // =========================
-  // HANDLE SHIPPING CHANGE
-  // =========================
-  function handleShippingChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!editingProduct) return;
-    const { name, value, type, checked } = e.target;
-
-    setEditingProduct({
-      ...editingProduct,
-      shippingOptions: {
-        ...editingProduct.shippingOptions,
-        [name]: type === "checkbox" ? checked : type === "number" ? Number(value) : value,
-      },
-    });
-  }
-
-  // =========================
-  // FILE CHANGE + PREVIEW
-  // =========================
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const selectedFiles = Array.from(e.target.files);
-      setFiles(selectedFiles);
-      const previews = selectedFiles.map((file) => URL.createObjectURL(file));
-      setImagePreviews(previews);
-    }
-  };
-
-  // =========================
   // DOCX TEMPLATE IMPORT
   // =========================
   const handleDocxUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingProduct) return;
     const file = e.target.files?.[0];
+
     if (!file) return;
 
     try {
@@ -246,27 +191,9 @@ export default function AdminProductsPage() {
     if (!editingProduct) return;
 
     try {
-      setIsUpdating(true);
       const token = localStorage.getItem("CAMX_TOKEN");
-      let finalImages = editingProduct.images;
 
-      if (files.length > 0) {
-        const uploadedImages: string[] = [];
-        const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-        const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "";
-
-        for (const file of files) {
-          const formData = new FormData();
-          formData.append("file", file);
-          formData.append("upload_preset", uploadPreset);
-
-          const uploadResponse = await axios.post(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, formData);
-          uploadedImages.push(uploadResponse.data.secure_url);
-        }
-        finalImages = uploadedImages;
-      }
-
-      const updatePayload = { ...editingProduct, images: finalImages };
+      const updatePayload = { ...editingProduct };
 
       // Category / Brand resolving
       if (typeof updatePayload.category === "object" && updatePayload.category !== null) {
@@ -288,6 +215,7 @@ export default function AdminProductsPage() {
       });
 
       alert("Product updated successfully");
+
       setEditingProduct(null);
       fetchProducts();
     } catch (error: unknown) {
@@ -295,11 +223,6 @@ export default function AdminProductsPage() {
       console.error("Update Error:", axiosError.response?.data || axiosError.message);
       const errorMsg = axiosError.response?.data?.message || "Failed to update product. Check console for details.";
       alert(`Error: ${errorMsg}`);
-      setFiles([]);
-      setImagePreviews([]);
-      fetchProducts();
-    } finally {
-      setIsUpdating(false);
     }
   }
 
@@ -308,6 +231,7 @@ export default function AdminProductsPage() {
   // =========================
   async function handleDelete(productId: string) {
     const confirmDelete = confirm("Delete this product?");
+
     if (!confirmDelete) return;
 
     try {
@@ -315,6 +239,7 @@ export default function AdminProductsPage() {
       await axios.delete(`${API}/api/products/${productId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       fetchProducts();
     } catch (error) {
       console.log(error);
@@ -429,50 +354,105 @@ export default function AdminProductsPage() {
               </div>
               {/* ========================= */}
 
-              {/* IMAGES UPLOAD & PREVIEW */}
-              <div className="md:col-span-2 mt-4 border-t border-border pt-4">
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Update Product Images</label>
-                <input type="file" multiple accept="image/*" onChange={handleFileChange} className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-neutral-100 file:text-neutral-700 dark:file:bg-neutral-800 dark:file:text-white cursor-pointer" />
-
-                {imagePreviews.length > 0 && (
-                  <div className="grid grid-cols-4 gap-4 mt-4">
-                    {imagePreviews.map((url, i) => (
-                      <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border">
-                        <Image src={url} alt="preview" fill unoptimized loading="eager" sizes="200px" className="object-cover" />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
               {/* DOCX IMPORT */}
-              <div className="md:col-span-2 mt-4 border-t border-border pt-4">
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Upload DOCX Specification Template</label>
-                <input type="file" accept=".docx" onChange={handleDocxUpload} className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-neutral-100 file:text-neutral-700 dark:file:bg-neutral-800 dark:file:text-white cursor-pointer" />
+              <div className="md:col-span-2">
+                <label
+                  className="
+                    block
+                    text-xs
+                    font-bold
+                    uppercase
+                    tracking-wider
+                    text-neutral-500
+                    dark:text-gray-400
+                    mb-2
+                  "
+                >
+                  Upload DOCX Specification Template
+                </label>
+
+                <input
+                  type="file"
+                  accept=".docx"
+                  onChange={handleDocxUpload}
+                  className="
+                    block
+                    w-full
+                    text-sm
+                    text-neutral-500
+                    file:mr-4
+                    file:py-2.5
+                    file:px-4
+                    file:rounded-xl
+                    file:border-0
+                    file:text-sm
+                    file:font-bold
+                    file:bg-neutral-100
+                    file:text-neutral-700
+                    cursor-pointer
+                  "
+                />
               </div>
 
               {/* TEMPLATE PREVIEW */}
               {editingProduct?.specifications?.featureData && (
-                <div className="md:col-span-2 mt-4 rounded-3xl border border-border bg-white dark:bg-neutral-900 p-6 overflow-x-auto">
-                  <div className="prose prose-sm max-w-none prose-table:w-full prose-table:border prose-td:border prose-th:border prose-td:p-2 prose-th:p-2 dark:prose-invert" dangerouslySetInnerHTML={{ __html: editingProduct.specifications?.featureData || "" }} />
+                <div
+                  className="
+                    md:col-span-2
+                    mt-4
+                    rounded-3xl
+                    border
+                    border-border
+                    bg-white
+                    p-6
+                    overflow-x-auto
+                  "
+                >
+                  <div
+                    className="
+                      prose
+                      prose-sm
+                      max-w-none
+                      prose-table:w-full
+                      prose-table:border
+                      prose-td:border
+                      prose-th:border
+                      prose-td:p-2
+                      prose-th:p-2
+                    "
+                    dangerouslySetInnerHTML={{
+                      __html: editingProduct.specifications?.featureData || "",
+                    }}
+                  />
                 </div>
               )}
             </div>
 
             {/* ACTIONS */}
-            <div className="flex gap-4 mt-8">
-              <button onClick={handleUpdate} disabled={isUpdating} className="h-12 px-6 rounded-xl bg-secondary text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed">
-                {isUpdating ? "Updating..." : "Update Product"}
+            <div className="flex gap-4 mt-6">
+              <button
+                onClick={handleUpdate}
+                className="
+                  h-12
+                  px-6
+                  rounded-xl
+                  bg-secondary
+                  text-white
+                  font-bold
+                "
+              >
+                Update Product
               </button>
 
               <button
-                onClick={() => {
-                  setEditingProduct(null);
-                  setFiles([]);
-                  setImagePreviews([]);
-                }}
-                disabled={isUpdating}
-                className="h-12 px-6 rounded-xl border border-border disabled:opacity-50"
+                onClick={() => setEditingProduct(null)}
+                className="
+                  h-12
+                  px-6
+                  rounded-xl
+                  border
+                  border-border
+                "
               >
                 Cancel
               </button>
@@ -497,12 +477,39 @@ export default function AdminProductsPage() {
                 <p className="mt-2 text-sm text-muted-foreground">{typeof product.category === "object" ? product.category?.name || "Unknown Category" : product.category || "Unknown Category"}</p>
 
                 <div className="mt-4">
-                  <p className="text-2xl font-black">Rs. {product.price?.toLocaleString()}</p>
-                  <p className="text-sm text-muted-foreground">Stock: {product.stock}</p>
+                  <p
+                    className="
+                      text-2xl
+                      font-black
+                    "
+                  >
+                    Rs.
+                    {product.price?.toLocaleString()}
+                  </p>
+
+                  <p
+                    className="
+                      text-sm
+                      text-muted-foreground
+                    "
+                  >
+                    Stock:
+                    {product.stock}
+                  </p>
                 </div>
 
                 <div className="flex gap-3 mt-6">
-                  <button onClick={() => handleEditClick(product)} className="flex-1 h-11 rounded-xl bg-secondary text-white font-bold">
+                  <button
+                    onClick={() => setEditingProduct(product)}
+                    className="
+                      flex-1
+                      h-11
+                      rounded-xl
+                      bg-secondary
+                      text-white
+                      font-bold
+                    "
+                  >
                     Update
                   </button>
 
