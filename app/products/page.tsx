@@ -12,14 +12,26 @@ import PriceRangeSlider from "@/app/components/PriceRangeSlider";
 const API = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
 const MAX_PRICE = 100000;
 
-type Product = {
+// Backend eken category/brand string ekak vidihata witharak nemei —
+// { _id, name, slug } object ekak vidihatath enna puluwan (populated reference).
+// Object ekama key ekak/label ekak vidihata use kalahot "[object Object]"
+// widihata stringify wenawa — eka thamai sidebar eke penune bug eka.
+type CategoryOrBrand = string | { _id?: string; name?: string; slug?: string } | null | undefined;
+
+function displayName(value: CategoryOrBrand): string {
+  if (!value) return "";
+  if (typeof value === "object") return value.name ?? value.slug ?? "";
+  return value;
+}
+
+type CatalogProduct = {
   _id: string;
   productId?: string;
   name: string;
   price: number;
   labelPrice?: number;
   images: string[];
-  category: string;
+  category: CategoryOrBrand;
   subcategory?: string;
   description?: string;
   stock?: number;
@@ -55,7 +67,7 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
 }
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -78,7 +90,7 @@ export default function ProductsPage() {
 
         // 2. ලබාගත් හැම Product එකක් සඳහාම අදාල Reviews ලබාගෙන Rating එක ගණනය කිරීම
         const productsWithRatings = await Promise.all(
-          fetchedProducts.map(async (p: Product) => {
+          fetchedProducts.map(async (p: CatalogProduct) => {
             try {
               const reviewRes = await axios.get(`${API}/api/reviews/product/${p._id}`);
               const productReviews = reviewRes.data.reviews || [];
@@ -118,11 +130,11 @@ export default function ProductsPage() {
     fetchData();
   }, []);
 
-  // CATEGORY TREE
+  /* CATEGORY TREE */
   const categoryTree = useMemo(() => {
     const tree: Record<string, string[]> = {};
     products.forEach((p) => {
-      const cat = p.category || "Other";
+      const cat = displayName(p.category) || "Other";
       const sub = p.subcategory || "General";
       if (!tree[cat]) {
         tree[cat] = [];
@@ -134,7 +146,7 @@ export default function ProductsPage() {
     return tree;
   }, [products]);
 
-  // BRANDS
+  /* BRANDS */
   const brands = useMemo(() => [...new Set(products.map((p) => p.brand || "Other"))], [products]);
 
   function toggleBrand(brand: string) {
@@ -200,13 +212,15 @@ export default function ProductsPage() {
     return chips;
   }, [selectedCategory, selectedSubcategory, selectedBrands, minPrice, maxPrice]);
 
-  // FILTER PRODUCTS
+  /* FILTERED */
   const filteredProducts = useMemo(() => {
     let result = products.filter((p) => {
+      const catName = displayName(p.category) || "Other";
+      const brandName = displayName(p.brand) || "Other";
       const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
-      const matchCat = selectedCategory === "All" || p.category === selectedCategory;
+      const matchCat = selectedCategory === "All" || catName === selectedCategory;
       const matchSub = !selectedSubcategory || p.subcategory === selectedSubcategory;
-      const matchBrand = selectedBrands.size === 0 || selectedBrands.has(p.brand || "Other");
+      const matchBrand = selectedBrands.size === 0 || selectedBrands.has(brandName);
       const matchPrice = p.price >= minPrice && p.price <= maxPrice;
 
       return matchSearch && matchCat && matchSub && matchBrand && matchPrice;
@@ -330,7 +344,7 @@ export default function ProductsPage() {
                 <AnimatePresence initial={false} mode="popLayout">
                   {filteredProducts.map((product) => (
                     <motion.div key={product._id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }}>
-                      <ProductCard product={product} />
+                      <ProductCard product={{ ...product, category: displayName(product.category) }} />
                     </motion.div>
                   ))}
                 </AnimatePresence>

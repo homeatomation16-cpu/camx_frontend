@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaStar, FaShoppingCart, FaEye, FaRegStar, FaStarHalfAlt } from "react-icons/fa";
+import { FaStar, FaShoppingCart, FaEye } from "react-icons/fa";
 import { MdLocalShipping } from "react-icons/md";
 
 type Product = {
@@ -14,11 +14,15 @@ type Product = {
   price: number;
   labelPrice?: number;
   images: string[];
+
   category: string;
+
   subcategory?: string;
   description?: string;
   stock?: number;
+
   brand?: string;
+
   rating?: number;
   reviews?: number;
 };
@@ -202,7 +206,8 @@ export default function ProductCard({ product }: Props) {
         33vw
       "
               className="
-        object-cover
+        object-contain
+        p-3
         transition-transform
         duration-500
         group-hover:scale-105
@@ -243,35 +248,36 @@ export default function ProductCard({ product }: Props) {
       </Link>
 
       {/* CONTENT */}
-      <div className="flex flex-1 flex-col p-2.5">
-        {/* BRAND + REVIEWS */}
-        <div className="mb-1 flex items-center justify-between">
-          <span className="text-[8px] font-black uppercase tracking-widest text-secondary">{product.brand || "CAMX"}</span>
+      <div className="flex flex-1 flex-col p-4">
+        {/* BRAND */}
+        <div className="mb-1.5 flex items-center justify-between">
+          <span
+            className="
+              text-[10px]
+              font-black
+              uppercase
+              tracking-widest
+              text-secondary
+            "
+          >
+            {product.brand || "CAMX"}
+          </span>
 
-          {/* Rating, Stars සහ Review Count */}
-          {product.rating && product.rating > 0 ? (
-            <div className="flex items-center gap-1.5">
-              {/* Stars */}
-              <div className="flex items-center text-amber-500">
-                {[1, 2, 3, 4, 5].map((star) => {
-                  const currentRating = product.rating || 0;
-                  if (currentRating >= star) {
-                    return <FaStar key={star} size={9} />;
-                  } else if (currentRating >= star - 0.5) {
-                    return <FaStarHalfAlt key={star} size={9} />;
-                  } else {
-                    return <FaRegStar key={star} size={9} className="text-neutral-300 dark:text-neutral-600" />;
-                  }
-                })}
-              </div>
-
-              {/* Numeric Value & Review Count */}
-              <span className="text-[9px] font-semibold text-amber-500 flex items-center gap-0.5">
-                {product.rating.toFixed(1)}
-                <span className="text-neutral-400 font-normal">({product.reviews || 0})</span>
-              </span>
-            </div>
-          ) : null}
+          {product.rating && (
+            <span
+              className="
+                flex
+                items-center
+                gap-1
+                text-[11px]
+                font-semibold
+                text-amber-500
+              "
+            >
+              <FaStar size={10} />
+              {product.rating.toFixed(1)}
+            </span>
+          )}
         </div>
 
         {/* NAME */}
